@@ -1,14 +1,21 @@
 use std::hash::Hash;
 use crate::crdts::linked_list::LinkedList;
-use crate::crdts::linked_list::CursorMut;
 
 type Element<I, V> = (I, V, bool);
 
-pub struct OrderedList<I: PartialEq + Eq + Hash + Clone + PartialOrd, V: PartialEq + Eq + Hash + Clone> {
+pub struct OrderedList<I, V> 
+where
+    I: PartialEq + Eq + Hash + Clone + PartialOrd,
+    V: PartialEq + Eq + Hash + Clone,
+{
     elements: LinkedList<Element<I, V>>,
 }
 
-impl<I: PartialEq + Eq + Hash + Clone + PartialOrd, V: PartialEq + Eq + Hash + Clone> OrderedList<I, V> {
+impl<I, V> OrderedList<I, V> 
+where
+    I: PartialEq + Eq + Hash + Clone + PartialOrd,
+    V: PartialEq + Eq + Hash + Clone,
+{
     pub fn new() -> Self {
         OrderedList {
             elements: LinkedList::new(),
@@ -105,7 +112,11 @@ impl<I: PartialEq + Eq + Hash + Clone + PartialOrd, V: PartialEq + Eq + Hash + C
     }
 }
 
-impl<I: PartialEq + Eq + Hash + Clone + PartialOrd, V: PartialEq + Eq + Hash + Clone> Clone for OrderedList<I, V> {
+impl<I, V> Clone for OrderedList<I, V>
+where
+    I: PartialEq + Eq + Hash + Clone + PartialOrd,
+    V: PartialEq + Eq + Hash + Clone,
+{
     fn clone(&self) -> Self {
         OrderedList {
             elements: self.elements.clone(),

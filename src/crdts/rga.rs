@@ -2,16 +2,28 @@ use crate::crdts::crdt::CRDT;
 use crate::crdts::ordered_list::OrderedList;
 use std::hash::Hash;
 
-pub enum RGAOp<I: PartialEq + Eq + Hash + Clone, V: PartialEq + Eq + Hash + Clone> {
+pub enum RGAOp<I, V>
+where
+    I: PartialEq + Eq + Hash + Clone,
+    V: PartialEq + Eq + Hash + Clone,
+{
     Insert(I, V, Option<I>),
     Delete(I),
 }
 
-pub struct RGA<I: PartialEq + Eq + Hash + Clone + PartialOrd, V: PartialEq + Eq + Hash + Clone> {
+pub struct RGA<I, V>
+where
+    I: PartialEq + Eq + Hash + Clone + PartialOrd,
+    V: PartialEq + Eq + Hash + Clone,
+{
     elements: OrderedList<I, V>,
 }
 
-impl<I: PartialEq + Eq + Hash + Clone + PartialOrd, V: PartialEq + Eq + Hash + Clone> RGA<I, V> {
+impl<I, V> RGA<I, V>
+where
+    I: PartialEq + Eq + Hash + Clone + PartialOrd,
+    V: PartialEq + Eq + Hash + Clone,
+{
     pub fn new() -> Self {
         RGA {
             elements: OrderedList::new(),
@@ -49,7 +61,11 @@ impl<I: PartialEq + Eq + Hash + Clone + PartialOrd, V: PartialEq + Eq + Hash + C
     }
 }
 
-impl<I: PartialEq + Eq + Hash + Clone + PartialOrd, V: PartialEq + Eq + Hash + Clone> CRDT<RGAOp<I, V>> for RGA<I, V> {
+impl<I, V> CRDT<RGAOp<I, V>> for RGA<I, V>
+where
+    I: PartialEq + Eq + Hash + Clone + PartialOrd,
+    V: PartialEq + Eq + Hash + Clone,
+{
     fn interpret_op(&mut self, op: &RGAOp<I, V>) {
         match op {
             RGAOp::Insert(id, value, after) => self.elements.insert_by_id(id.clone(), value.clone(), after.clone()),

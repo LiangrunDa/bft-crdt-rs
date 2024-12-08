@@ -9,11 +9,19 @@ pub enum ORSetOp<E, I> {
     Remove(E, Vec<I>),
 }
 
-pub struct ORSet<E: Eq + Hash + Clone, I: PartialEq + Eq + Hash + Clone> {
+pub struct ORSet<E, I> 
+where
+    E: Eq + Hash + Clone,
+    I: PartialEq + Eq + Hash + Clone
+{
     elements: HashMap<E, HashSet<I>>,
 }
 
-impl<E: Eq + Hash + Clone, I: PartialEq + Eq + Hash + Clone> ORSet<E, I> {
+impl<E, I> ORSet<E, I> 
+where
+    E: Eq + Hash + Clone,
+    I: PartialEq + Eq + Hash + Clone
+{
     pub fn new() -> Self {
         ORSet {
             elements: HashMap::new(),
@@ -38,7 +46,11 @@ impl<E: Eq + Hash + Clone, I: PartialEq + Eq + Hash + Clone> ORSet<E, I> {
 
 }
 
-impl<E: Eq + Hash + Clone, I: PartialEq + Eq + Hash + Clone> CRDT<ORSetOp<E, I>> for ORSet<E, I> {
+impl<E, I> CRDT<ORSetOp<E, I>> for ORSet<E, I>
+where
+    E: Eq + Hash + Clone,
+    I: PartialEq + Eq + Hash + Clone
+{
     fn interpret_op(&mut self, op: &ORSetOp<E, I>) {
         match op {
             ORSetOp::Add(e, i) => {
