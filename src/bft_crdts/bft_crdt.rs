@@ -1,8 +1,8 @@
 use crate::bft_crdts::hash_graph::{HashGraph, Node};
 
 pub trait BFTCRDT<O: Into<Vec<u8>> + Clone> {
-    fn interpret_op(&mut self, op: &O);
-    fn is_valid(&self, op: &O, hash_graph: &HashGraph<O>) -> bool;
+    fn interpret_node(&mut self, node: &Node<O>);
+    fn is_sem_valid(&self, op: &Node<O>, hash_graph: &HashGraph<O>) -> bool;
 }
 
 pub struct BFTCRDTHandler<O: Into<Vec<u8>> + Clone, T: BFTCRDT<O>> {
@@ -21,8 +21,13 @@ impl <O: Into<Vec<u8>> + Clone, T: BFTCRDT<O>> BFTCRDTHandler<O, T> {
     }
     
     pub fn handle_local_op(&mut self, op: O) {
-        self.hash_graph.add_local_node(op.clone());
-        self.crdt.interpret_op(&op);
+        let h = self.hash_graph.add_local_node(op.clone());
+        if h.is_none() {
+            // this should never happen
+            panic!("Failed to add local node");
+        }
+        let node = self.hash_graph.get_node(&h.unwrap()).unwrap();
+        self.crdt.interpret_node(&node);
     }
 
     pub fn handle_remote_node(&mut self, remote_node: Node<O>) {
@@ -30,10 +35,10 @@ impl <O: Into<Vec<u8>> + Clone, T: BFTCRDT<O>> BFTCRDTHandler<O, T> {
         if !struct_valid {
             return;
         }
-        let sem_valid = self.crdt.is_valid(&remote_node.value, &self.hash_graph);
+        let sem_valid = self.crdt.is_sem_valid(&remote_node, &self.hash_graph);
         if sem_valid {
             self.hash_graph.add_remote_node(remote_node.clone());
-            self.crdt.interpret_op(&remote_node.value);
+            self.crdt.interpret_node(&remote_node);
             self.handle_pending_nodes();
         } else {
             self.pending_nodes.push(remote_node);
@@ -47,9 +52,9 @@ impl <O: Into<Vec<u8>> + Clone, T: BFTCRDT<O>> BFTCRDTHandler<O, T> {
             for node in self.pending_nodes.drain(..) {
                 let struct_valid = self.hash_graph.is_structurally_valid(&node);
                 if struct_valid {
-                    if self.crdt.is_valid(&node.value, &self.hash_graph) {
+                    if self.crdt.is_sem_valid(&node, &self.hash_graph) {
                         self.hash_graph.add_remote_node(node.clone());
-                        self.crdt.interpret_op(&node.value);
+                        self.crdt.interpret_node(&node);
                         changed = true;
                     }
                 } else {
@@ -67,6 +72,7 @@ impl <O: Into<Vec<u8>> + Clone, T: BFTCRDT<O>> BFTCRDTHandler<O, T> {
 #[cfg(test)]
 mod tests {
     use crate::bft_crdts::bft_orset::BFTORSet;
+    use crate::bft_crdts::bft_rga::BFTRGA;
     use super::*;
     
     #[test]
@@ -87,5 +93,23 @@ mod tests {
         assert_eq!(handler.crdt.get_set().len(), 1);
         assert_eq!(handler.crdt.is_in("a"), false);
         assert_eq!(handler.crdt.is_in("b"), true);
+    }
+    
+    #[test]
+    fn test_bft_rga_handler() {
+        let rga = BFTRGA::new();
+        let mut handler = BFTCRDTHandler::new(rga);
+        let insert_op = handler.crdt.insert(0, "a", "0").unwrap();
+        handler.handle_local_op(insert_op.clone());
+        let insert_op = handler.crdt.insert(1, "b", "1").unwrap();
+        handler.handle_local_op(insert_op.clone());
+        let insert_op = handler.crdt.insert(2, "c", "2").unwrap();
+        handler.handle_local_op(insert_op.clone());
+        let insert_op = handler.crdt.insert(1, "d", "3").unwrap();
+        handler.handle_local_op(insert_op.clone());
+        assert_eq!(handler.crdt.get_list(), vec!["a", "d", "b", "c"]);
+        let delete_op = handler.crdt.delete(1).unwrap();
+        handler.handle_local_op(delete_op.clone());
+        assert_eq!(handler.crdt.get_list(), vec!["a", "b", "c"]);
     }
 }

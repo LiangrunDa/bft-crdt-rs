@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
 use crate::bft_crdts::bft_crdt::BFTCRDT;
-use crate::bft_crdts::hash_graph::HashGraph;
+use crate::bft_crdts::hash_graph::{HashGraph, Node};
 use sha3::{Digest, Sha3_256};
 use crate::bft_crdts::hash_graph::HashType;
 
@@ -85,14 +85,11 @@ impl<E> BFTCRDT<BFTORSetOp<E>> for BFTORSet<E>
 where
     E: Eq + Hash + Clone + Into<Vec<u8>>,
 {
-    fn interpret_op(&mut self, op: &BFTORSetOp<E>) {
-        
+    fn interpret_node(&mut self, node: &Node<BFTORSetOp<E>>) {
+        let op = &node.value;
         match op {
             BFTORSetOp::Add(e) => {
-                let mut hasher = Sha3_256::new();
-                let op_bytes: Vec<u8> = op.clone().into();
-                hasher.update(op_bytes);
-                let id = hasher.finalize().to_vec();
+                let id = node.get_hash();
                 self.elements.entry(e.clone()).or_insert(HashSet::new()).insert(id);
             }
             BFTORSetOp::Remove(e, ids) => {
@@ -105,11 +102,12 @@ where
         }
     }
 
-    fn is_valid(&self, op: &BFTORSetOp<E>, hash_graph: &HashGraph<BFTORSetOp<E>>) -> bool {
+    fn is_sem_valid(&self, node: &Node<BFTORSetOp<E>>, hash_graph: &HashGraph<BFTORSetOp<E>>) -> bool {
         // fun is_orset_sem_valid :: ‹('hash, 'a) ORSetC ⇒ ('hash, 'a) ORSetH ⇒ ('hash, 'a) ORSetN set ⇒ ('hash, 'a) ORSetN ⇒ bool› where
         //   ‹is_orset_sem_valid C H S (hs, Add e) = True›
         // | ‹is_orset_sem_valid C H S (hs, Rem is e) = 
         //     (∀i ∈ is. ∃ n ∈ S. (C n (hs, Rem is e)) ∧ (snd n = Add e) ∧ (H n = i))›
+        let op = &node.value;
         match op {
             BFTORSetOp::Add(e) => true,
             BFTORSetOp::Remove(e1, ids) => {
