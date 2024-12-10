@@ -1,3 +1,3 @@
-pub trait CRDT<O> {
+pub(crate) trait CRDT<O> {
     fn interpret_op(&mut self, op: &O);
 }

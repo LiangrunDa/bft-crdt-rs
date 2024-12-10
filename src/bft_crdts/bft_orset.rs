@@ -1,84 +1,134 @@
 use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
+use crate::bft_crdts::bft_crdt::BFTCRDT;
 use crate::bft_crdts::hash_graph::HashGraph;
+use sha3::{Digest, Sha3_256};
+use crate::bft_crdts::hash_graph::HashType;
 
-pub enum BFTORSetOp<E, I> {
+type ORSetID = HashType; // in BFT ORSet, ID is the hash value of the element's Add operation
+
+#[derive(Debug, Clone)]
+pub enum BFTORSetOp<E> {
     Add(E),
-    Remove(E, Vec<I>),
+    Remove(E, Vec<ORSetID>),
 }
 
-impl<E, I> Into<Vec<u8>> for BFTORSetOp<E, I>
+impl<E> Into<Vec<u8>> for BFTORSetOp<E>
 where
     E: Eq + Hash + Clone + Into<Vec<u8>>,
-    I: PartialEq + Eq + Hash + Clone + Into<Vec<u8>>,
 {
     fn into(self) -> Vec<u8> {
         match self {
             BFTORSetOp::Add(e) => {
-                let mut bytes = vec![0];
+                let mut bytes = vec![];
                 bytes.extend_from_slice(&e.into());
                 bytes
             }
             BFTORSetOp::Remove(e, ids) => {
-                let mut bytes = vec![1];
+                let mut bytes = vec![];
                 bytes.extend_from_slice(&e.into());
                 for id in ids {
-                    bytes.extend_from_slice(&id.into());
+                    bytes.extend_from_slice(id.as_slice());
                 }
                 bytes
             }
         }
     }
-} 
-
-impl<E, I> Clone for BFTORSetOp<E, I>
-where
-    E: Eq + Hash + Clone + Into<Vec<u8>>,
-    I: PartialEq + Eq + Hash + Clone + Into<Vec<u8>>,
-{
-    fn clone(&self) -> Self {
-        match self {
-            BFTORSetOp::Add(e) => BFTORSetOp::Add(e.clone()),
-            BFTORSetOp::Remove(e, ids) => BFTORSetOp::Remove(e.clone(), ids.clone()),
-        }
-    }
 }
 
-pub struct BFTORSet<E, I>
+pub struct BFTORSet<E>
 where
     E: Eq + Hash + Clone + Into<Vec<u8>>,
-    I: PartialEq + Eq + Hash + Clone + Into<Vec<u8>>,
 {
-    elements: HashMap<E, HashSet<I>>,
-    hash_graph: HashGraph<BFTORSetOp<E, I>>,
+    pub elements: HashMap<E, HashSet<ORSetID>>,
 }
 
-impl<E, I> BFTORSet<E, I>
+impl<E> BFTORSet<E>
 where
     E: Eq + Hash + Clone + Into<Vec<u8>>,
-    I: PartialEq + Eq + Hash + Clone + Into<Vec<u8>>,
 {
     pub fn new() -> Self {
         BFTORSet {
             elements: HashMap::new(),
-            hash_graph: HashGraph::new(),
         }
     }
 
-    pub fn add(&mut self, e: E) -> BFTORSetOp<E, I> {
+    pub fn add(&mut self, e: E) -> BFTORSetOp<E> {
         BFTORSetOp::Add(e)
     }
 
-    pub fn remove(&mut self, e: E, ids: Vec<I>) -> BFTORSetOp<E, I> {
+    pub fn remove(&mut self, e: E, ids: Vec<ORSetID>) -> BFTORSetOp<E> {
         BFTORSetOp::Remove(e, ids)
+    }
+    
+    pub fn remove_elem(&mut self, e: E) -> BFTORSetOp<E> {
+        let ids = self.elements.get(&e).cloned().unwrap_or_default();
+        BFTORSetOp::Remove(e, ids.into_iter().collect())
     }
 
     pub fn is_in(&self, e: E) -> bool {
         self.elements.get(&e).map_or(false, |ids| !ids.is_empty())
     }
 
-    pub fn get_ids(&self, e: E) -> HashSet<I> {
+    pub fn get_ids(&self, e: E) -> HashSet<ORSetID> {
         self.elements.get(&e).cloned().unwrap_or_default()
     }
+    
+    pub fn get_set(&self) -> HashSet<E> {
+        // only elements that have non-empty ids
+        self.elements.iter().filter(|(_, ids)| !ids.is_empty()).map(|(e, _)| e.clone()).collect()
+    }
+    
+}
 
+impl<E> BFTCRDT<BFTORSetOp<E>> for BFTORSet<E>
+where
+    E: Eq + Hash + Clone + Into<Vec<u8>>,
+{
+    fn interpret_op(&mut self, op: &BFTORSetOp<E>) {
+        
+        match op {
+            BFTORSetOp::Add(e) => {
+                let mut hasher = Sha3_256::new();
+                let op_bytes: Vec<u8> = op.clone().into();
+                hasher.update(op_bytes);
+                let id = hasher.finalize().to_vec();
+                self.elements.entry(e.clone()).or_insert(HashSet::new()).insert(id);
+            }
+            BFTORSetOp::Remove(e, ids) => {
+                if let Some(e_ids) = self.elements.get_mut(e) {
+                    for id in ids {
+                        e_ids.remove(id);
+                    }
+                }
+            }
+        }
+    }
+
+    fn is_valid(&self, op: &BFTORSetOp<E>, hash_graph: &HashGraph<BFTORSetOp<E>>) -> bool {
+        // fun is_orset_sem_valid :: ‹('hash, 'a) ORSetC ⇒ ('hash, 'a) ORSetH ⇒ ('hash, 'a) ORSetN set ⇒ ('hash, 'a) ORSetN ⇒ bool› where
+        //   ‹is_orset_sem_valid C H S (hs, Add e) = True›
+        // | ‹is_orset_sem_valid C H S (hs, Rem is e) = 
+        //     (∀i ∈ is. ∃ n ∈ S. (C n (hs, Rem is e)) ∧ (snd n = Add e) ∧ (H n = i))›
+        match op {
+            BFTORSetOp::Add(e) => true,
+            BFTORSetOp::Remove(e1, ids) => {
+                ids.iter().all(|id| { // ∀i ∈ is
+                    let h = id;
+                    let node = hash_graph.get_node(h); // ∃ n ∈ S. H n = i
+                    match node {
+                        Some(n) => {
+                            let hn = n.get_hash();
+                            if let BFTORSetOp::Add(e2) = &n.value {
+                                hash_graph.is_ancestor(&hn, h) // (C n (hs, Rem is e))
+                            } else {
+                                false
+                            }
+                        }
+                        None => false
+                    }
+                })
+            }
+        }
+    }
 }
