@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package bftcrdtrpc;
+option go_package = "github.com/LiangrunDa/bft-crdt-tester/network";
+
+message ORSetNodeMessage {
+  repeated string predecessors = 1;  // predecessor hashes
+
+  oneof operation {
+    AddMessage add = 2;  // Add operation
+    RemMessage rem = 3;  // Remove operation
+  }
+
+  message AddMessage {
+    int32 elem = 1;  // elem for Add operation
+  }
+
+  message RemMessage {
+    repeated string ids = 1;  // IDs to remove
+    int32 elem = 2;            // elem to remove
+  }
+}
+
+message ORSetRequest {
+  repeated ORSetNodeMessage nodes = 1;  // History
+}
+
+message ORSetResponse {
+  map<int32, elem_ids> result_map = 1;  // Map from int to list<String>
+
+  message elem_ids {
+    repeated string elem_id = 1;  // List of strings
+  }
+}
+
+service BFTCRDTTesterService {
+  rpc testORSetOnce(ORSetRequest) returns (ORSetResponse) {}
+}
