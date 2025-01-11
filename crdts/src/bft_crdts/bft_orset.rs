@@ -28,7 +28,7 @@ where
                 let mut bytes = vec![];
                 bytes.extend_from_slice(&e.into());
                 for id in ids {
-                    bytes.extend_from_slice(id.as_slice());
+                    bytes.extend_from_slice(id.as_bytes());
                 }
                 bytes
             }

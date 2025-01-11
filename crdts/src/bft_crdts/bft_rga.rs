@@ -38,7 +38,7 @@ where
                 match rga_id {
                     Some((id, hash)) => {
                         bytes.extend_from_slice(&id.into());
-                        bytes.extend_from_slice(&hash);
+                        bytes.extend_from_slice(hash.as_bytes());
                     }
                     None => {}
                 }
@@ -47,7 +47,7 @@ where
             BFTRGAOp::Delete(rga_id) => {
                 let mut bytes = vec![];
                 bytes.extend_from_slice(&rga_id.0.into());
-                bytes.extend_from_slice(&rga_id.1);
+                bytes.extend_from_slice(&rga_id.1.as_bytes());
                 bytes
             }
         }

@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 use sha3::{Digest, Sha3_256};
+use hex;
 
-pub type HashType = Vec<u8>;
+pub type HashType = String;
 
 #[derive(Debug, Clone)]
 pub struct Node<T: Into<Vec<u8>> + Clone> {
@@ -17,7 +18,8 @@ impl <T: Into<Vec<u8>> + Clone> Node<T> {
         }
         let value_bytes = self.value.clone().into();
         hasher.update(value_bytes);
-        hasher.finalize().to_vec()
+        let hash = hasher.finalize().to_vec();
+        hex::encode(hash)
     }
 }
 
@@ -90,7 +92,7 @@ mod tests {
         let hash = graph.add_local_node(b"test".to_vec());
         let mut hasher = Sha3_256::new();
         hasher.update(b"test");
-        let expected_hash = hasher.finalize().to_vec();
+        let expected_hash = hex::encode(hasher.finalize().to_vec());
         assert_eq!(hash.unwrap(), expected_hash);
         assert_eq!(graph.nodes.len(), 1);
         assert_eq!(graph.get_node(&expected_hash).unwrap().value, b"test");
@@ -103,11 +105,12 @@ mod tests {
         let hash2 = graph.add_local_node(b"test2".to_vec());
         let mut hasher = Sha3_256::new();
         hasher.update(b"test1");
-        let expected_hash1 = hasher.finalize().to_vec();
+        let expected_hash1 = hex::encode(hasher.finalize().to_vec());
         hasher = Sha3_256::new();
         hasher.update(expected_hash1.clone());
         hasher.update(b"test2");
-        let expected_hash2 = hasher.finalize().to_vec();
+        let expected_hash2 = hex::encode(hasher.finalize().to_vec());
+        
         assert_eq!(hash1.unwrap(), expected_hash1);
         assert_eq!(hash2.unwrap(), expected_hash2);
         assert_eq!(graph.nodes.len(), 2);
