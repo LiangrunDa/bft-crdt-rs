@@ -2,7 +2,7 @@ use std::hash::Hash;
 use crate::bft_crdts::hash_graph::{HashGraph, HashType, Node};
 use crate::bft_crdts::bft_crdt::BFTCRDT;
 use crate::crdts::ordered_list::OrderedList;
-use sha3::{Digest, Sha3_256};
+use sha2::{Digest, Sha256};
 
 //  The ID of each element in RGA affects the position of the element in the list, since 
 //   $\isa{insert-body}$ skips over the elements that have greater IDs than the inserted element. 

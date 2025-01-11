@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
 use crate::bft_crdts::bft_crdt::BFTCRDT;
 use crate::bft_crdts::hash_graph::{HashGraph, Node};
-use sha3::{Digest, Sha3_256};
+use sha2::{Digest, Sha256};
 use crate::bft_crdts::hash_graph::HashType;
 
 type ORSetID = HashType; // in BFT ORSet, ID is the hash value of the element's Add operation
@@ -26,10 +26,12 @@ where
             }
             BFTORSetOp::Remove(e, ids) => {
                 let mut bytes = vec![];
-                bytes.extend_from_slice(&e.into());
-                for id in ids {
+                let mut sorted_ids = ids;
+                sorted_ids.sort();
+                for (i, id) in sorted_ids.iter().enumerate() {
                     bytes.extend_from_slice(id.as_bytes());
                 }
+                bytes.extend_from_slice(&e.into());
                 bytes
             }
         }
@@ -77,6 +79,10 @@ where
     pub fn get_set(&self) -> HashSet<E> {
         // only elements that have non-empty ids
         self.elements.iter().filter(|(_, ids)| !ids.is_empty()).map(|(e, _)| e.clone()).collect()
+    }
+    
+    pub fn get_map(&self) -> HashMap<E, HashSet<ORSetID>> {
+        self.elements.clone()
     }
     
 }

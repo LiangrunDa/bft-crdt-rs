@@ -5,6 +5,32 @@ pub trait BFTCRDT<O: Into<Vec<u8>> + Clone> {
     fn is_sem_valid(&self, op: &Node<O>, hash_graph: &HashGraph<O>) -> bool;
 }
 
+pub struct BFTCRDTTester<O: Into<Vec<u8>> + Clone, T: BFTCRDT<O>> {
+    pub crdt: T,
+    pub hash_graph: HashGraph<O>,
+}
+
+impl <O: Into<Vec<u8>> + Clone, T: BFTCRDT<O>> BFTCRDTTester<O, T> {
+    pub fn new(crdt: T) -> Self {
+        BFTCRDTTester {
+            crdt,
+            hash_graph: HashGraph::new(),
+        }
+    }
+    
+    pub fn handle_node(&mut self, remote_node: Node<O>) {
+        let struct_valid = self.hash_graph.is_structurally_valid(&remote_node);
+        if !struct_valid {
+            return;
+        }
+        let sem_valid = self.crdt.is_sem_valid(&remote_node, &self.hash_graph);
+        if sem_valid {
+            self.hash_graph.add_remote_node(remote_node.clone());
+            self.crdt.interpret_node(&remote_node);
+        }
+    }
+}
+
 pub struct BFTCRDTHandler<O: Into<Vec<u8>> + Clone, T: BFTCRDT<O>> {
     pub crdt: T,
     pub hash_graph: HashGraph<O>,

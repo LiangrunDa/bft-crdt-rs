@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use sha3::{Digest, Sha3_256};
+use sha2::{Digest, Sha256};
 use hex;
 
 pub type HashType = String;
@@ -12,9 +12,11 @@ pub struct Node<T: Into<Vec<u8>> + Clone> {
 
 impl <T: Into<Vec<u8>> + Clone> Node<T> {
     pub fn get_hash(&self) -> HashType {
-        let mut hasher = Sha3_256::new();
-        for pred in &self.predecessors {
-            hasher.update(pred);
+        let mut hasher = Sha256::new();
+        let mut sorted_preds = self.predecessors.clone();
+        sorted_preds.sort();
+        for pred in sorted_preds {
+            hasher.update(pred.as_bytes());
         }
         let value_bytes = self.value.clone().into();
         hasher.update(value_bytes);
@@ -90,7 +92,7 @@ mod tests {
     fn test_add_node() {
         let mut graph: HashGraph<Vec<u8>> = HashGraph::new();
         let hash = graph.add_local_node(b"test".to_vec());
-        let mut hasher = Sha3_256::new();
+        let mut hasher = Sha256::new();
         hasher.update(b"test");
         let expected_hash = hex::encode(hasher.finalize().to_vec());
         assert_eq!(hash.unwrap(), expected_hash);
@@ -103,10 +105,10 @@ mod tests {
         let mut graph: HashGraph<Vec<u8>> = HashGraph::new();
         let hash1 = graph.add_local_node(b"test1".to_vec());
         let hash2 = graph.add_local_node(b"test2".to_vec());
-        let mut hasher = Sha3_256::new();
+        let mut hasher = Sha256::new();
         hasher.update(b"test1");
         let expected_hash1 = hex::encode(hasher.finalize().to_vec());
-        hasher = Sha3_256::new();
+        hasher = Sha256::new();
         hasher.update(expected_hash1.clone());
         hasher.update(b"test2");
         let expected_hash2 = hex::encode(hasher.finalize().to_vec());

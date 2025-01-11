@@ -1,6 +1,12 @@
+use std::collections::HashMap;
 use protocol::bftcrdtrpc::bftcrdt_tester_service_server::{BftcrdtTesterService, BftcrdtTesterServiceServer};
-use protocol::bftcrdtrpc::{OrSetRequest, OrSetResponse};
+use protocol::bftcrdtrpc::{or_set_response, OrSetRequest, OrSetResponse};
 use tonic::{transport::Server, Request, Response, Status};
+use crdts::bft_crdts::bft_crdt::BFTCRDTTester;
+use crdts::bft_crdts::bft_orset::{BFTORSet, BFTORSetOp};
+use crdts::bft_crdts::hash_graph::Node;
+use protocol::bftcrdtrpc::or_set_node_message::Operation;
+
 
 // Our server implementation
 #[derive(Debug, Default)]
@@ -12,8 +18,42 @@ impl BftcrdtTesterService for BftCrdtTesterServer {
         &self,
         request: Request<OrSetRequest>,
     ) -> Result<Response<OrSetResponse>, Status> {
-        // Implementation will go here later
-        todo!("Implement test_or_set_once")
+        let mut tester: BFTCRDTTester<BFTORSetOp<String>, BFTORSet<String>> = BFTCRDTTester::new(BFTORSet::new());
+
+        for node in request.into_inner().nodes {
+            // Store it as String for convenience (to align with hash function defined in Scala)
+            let op :BFTORSetOp<String> = match node.operation {
+                Some(inner_op) => match inner_op {
+                    Operation::Add(e) => {
+                        BFTORSetOp::Add(e.elem.to_string())
+                    }
+                    Operation::Rem(r) => {
+                        BFTORSetOp::Remove(r.elem.to_string(), r.ids)
+                    }
+                }
+                None => return Err(Status::invalid_argument("Operation not provided")),
+            };
+            let hash_node = Node {
+                predecessors: node.predecessors,
+                value: op,
+            };
+            
+            tester.handle_node(hash_node);
+        }
+        let mut result_map: HashMap<i32, or_set_response::ElemIds> = Default::default();
+        for (k, v) in tester.crdt.elements.iter() {
+            let elem_ids = v.iter().map(|id| id.to_string()).collect();
+            // parse String to i32
+            result_map.insert(k.parse().unwrap(), or_set_response::ElemIds {
+                elem_id: elem_ids
+            });
+        }
+        
+        let reply = OrSetResponse {
+            result_map: result_map,
+        };
+        
+        Ok(Response::new(reply))
     }
 }
 
