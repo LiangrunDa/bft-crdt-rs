@@ -81,7 +81,7 @@ where
     }
 
     fn is_sem_valid(&self, node: &Node<BFTRGAOp<I, V>>, hash_graph: &HashGraph<BFTRGAOp<I, V>>) -> bool {
-        let op = &node.value;
+        let op = node.clone().value;
         match op {
             // ‹is_rga_sem_valid C H G (hs, Insert v i ei) = (
             //     case ei of 
@@ -96,12 +96,12 @@ where
             BFTRGAOp::Insert(v, i, ei) => {
                 match ei {
                     Some((id, hash)) => {
-                        let ref_node_res = hash_graph.get_node(hash); // H (hs', Insert v' i' ei') = snd ii
+                        let ref_node_res = hash_graph.get_node(&hash); // H (hs', Insert v' i' ei') = snd ii
                         if let Some(ref_node) = ref_node_res {
                             if let BFTRGAOp::Insert(v2, i2, ei2) = &node.value {
                                 let ref_hash = ref_node.get_hash();
                                 let hash = node.get_hash();
-                                if hash_graph.is_ancestor(&ref_hash, &hash) && id == i2 {
+                                if hash_graph.is_ancestor(&ref_hash, node) && &id == i2 {
                                     true
                                 } else {
                                     false

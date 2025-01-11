@@ -42,7 +42,10 @@ impl BftcrdtTesterService for BftCrdtTesterServer {
         }
         let mut result_map: HashMap<i32, or_set_response::ElemIds> = Default::default();
         for (k, v) in tester.crdt.elements.iter() {
-            let elem_ids = v.iter().map(|id| id.to_string()).collect();
+            let mut elem_ids: Vec<String> = v.iter().map(|id| id.to_string()).collect();
+            // Sort the elem_ids
+            elem_ids.sort();
+            
             // parse String to i32
             result_map.insert(k.parse().unwrap(), or_set_response::ElemIds {
                 elem_id: elem_ids

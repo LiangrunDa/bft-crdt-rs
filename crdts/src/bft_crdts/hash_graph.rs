@@ -70,14 +70,19 @@ impl<T: Into<Vec<u8>> + Clone> HashGraph<T> {
         self.nodes.get(hash)
     }
     
-    pub fn is_ancestor(&self, ancestor: &HashType, descendant: &HashType) -> bool {
-        if ancestor == descendant {
+    pub fn is_ancestor(&self, ancestor: &HashType, descendant: &Node<T>) -> bool {
+        if *ancestor == descendant.get_hash() {
             return true;
         }
-        let descendant_node = self.get_node(descendant).unwrap();
-        for pred in &descendant_node.predecessors {
-            if self.is_ancestor(ancestor, pred) {
-                return true;
+        for pred in &descendant.predecessors {
+            let pred_node = self.get_node(pred);
+            match pred_node {
+                Some(node) => {
+                    if self.is_ancestor(ancestor, node) {
+                        return true;
+                    }
+                }
+                None => return false,
             }
         }
         false

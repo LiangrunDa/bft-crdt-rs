@@ -113,18 +113,18 @@ where
         //   ‹is_orset_sem_valid C H S (hs, Add e) = True›
         // | ‹is_orset_sem_valid C H S (hs, Rem is e) = 
         //     (∀i ∈ is. ∃ n ∈ S. (C n (hs, Rem is e)) ∧ (snd n = Add e) ∧ (H n = i))›
-        let op = &node.value;
+        let op = node.clone().value;
         match op {
             BFTORSetOp::Add(e) => true,
             BFTORSetOp::Remove(e1, ids) => {
                 ids.iter().all(|id| { // ∀i ∈ is
                     let h = id;
-                    let node = hash_graph.get_node(h); // ∃ n ∈ S. H n = i
-                    match node {
+                    let rem_node = hash_graph.get_node(h); // ∃ n ∈ S. H n = i
+                    match rem_node {
                         Some(n) => {
                             let hn = n.get_hash();
                             if let BFTORSetOp::Add(e2) = &n.value {
-                                hash_graph.is_ancestor(&hn, h) // (C n (hs, Rem is e))
+                                hash_graph.is_ancestor(&hn, node) // (C n (hs, Rem is e))
                             } else {
                                 false
                             }
