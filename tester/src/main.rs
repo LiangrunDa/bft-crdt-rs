@@ -2,11 +2,13 @@ use std::collections::HashMap;
 use protocol::bftcrdtrpc::bftcrdt_tester_service_server::{BftcrdtTesterService, BftcrdtTesterServiceServer};
 use protocol::bftcrdtrpc::{or_set_response, OrSetRequest, OrSetResponse};
 use tonic::{transport::Server, Request, Response, Status};
+use tracing::info;
 use crdts::bft_crdts::bft_crdt::BFTCRDTTester;
 use crdts::bft_crdts::bft_orset::{BFTORSet, BFTORSetOp};
 use crdts::bft_crdts::hash_graph::Node;
 use protocol::bftcrdtrpc::or_set_node_message::Operation;
 
+mod logger;
 
 // Our server implementation
 #[derive(Debug, Default)]
@@ -62,10 +64,11 @@ impl BftcrdtTesterService for BftCrdtTesterServer {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let _file_appender_guard = logger::init(String::from("debug"), "tokio=error,crdts=trace")?;
     let addr = "[::1]:50052".parse()?;
     let tester = BftCrdtTesterServer::default();
 
-    println!("Server listening on {}", addr);
+    info!("Server listening on {}", addr);
 
     Server::builder()
         .add_service(BftcrdtTesterServiceServer::new(tester))

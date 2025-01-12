@@ -1,5 +1,6 @@
+use std::fmt::Debug;
 use crate::bft_crdts::hash_graph::{HashGraph, Node};
-use tracing::{info, trace};
+use tracing::{trace};
 use crate::serialize::Serialize;
 
 pub trait BFTCRDT<O: Serialize + Clone> {
@@ -12,7 +13,7 @@ pub struct BFTCRDTTester<O: Serialize + Clone, T: BFTCRDT<O>> {
     pub hash_graph: HashGraph<O>,
 }
 
-impl <O: Serialize + Clone, T: BFTCRDT<O>> BFTCRDTTester<O, T> {
+impl <O: Serialize + Clone + Debug, T: BFTCRDT<O>> BFTCRDTTester<O, T> {
     pub fn new(crdt: T) -> Self {
         BFTCRDTTester {
             crdt,
@@ -20,7 +21,9 @@ impl <O: Serialize + Clone, T: BFTCRDT<O>> BFTCRDTTester<O, T> {
         }
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     pub fn handle_node(&mut self, remote_node: Node<O>) {
+        trace!("Begin of handle_node");
         let struct_valid = self.hash_graph.is_structurally_valid(&remote_node);
         if !struct_valid {
             return;
@@ -28,8 +31,11 @@ impl <O: Serialize + Clone, T: BFTCRDT<O>> BFTCRDTTester<O, T> {
         let sem_valid = self.crdt.is_sem_valid(&remote_node, &self.hash_graph);
         if sem_valid {
             self.hash_graph.add_remote_node(remote_node.clone());
+            trace!("Interpreting node");
             self.crdt.interpret_node(&remote_node);
+            trace!("Node interpreted");
         }
+        trace!("End of handle_node");
     }
 }
 

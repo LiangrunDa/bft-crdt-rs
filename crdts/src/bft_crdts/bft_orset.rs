@@ -2,7 +2,8 @@ use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
 use crate::bft_crdts::bft_crdt::BFTCRDT;
 use crate::bft_crdts::hash_graph::{HashGraph, Node};
-use sha2::{Digest, Sha256};
+use sha2::{Digest};
+use tracing::{trace};
 use crate::bft_crdts::hash_graph::HashType;
 use crate::serialize::Serialize;
 
@@ -114,9 +115,13 @@ where
         //   ‹is_orset_sem_valid C H S (hs, Add e) = True›
         // | ‹is_orset_sem_valid C H S (hs, Rem is e) = 
         //     (∀i ∈ is. ∃ n ∈ S. (C n (hs, Rem is e)) ∧ (snd n = Add e) ∧ (H n = i))›
+        trace!("Begin of is_sem_valid");
         let op = node.clone().value;
         match op {
-            BFTORSetOp::Add(e) => true,
+            BFTORSetOp::Add(e) => {
+                trace!("End of is_sem_valid by Add operation");
+                true
+            },
             BFTORSetOp::Remove(e1, ids) => {
                 ids.iter().all(|id| { // ∀i ∈ is
                     let h = id;
@@ -125,12 +130,18 @@ where
                         Some(n) => {
                             let hn = n.get_hash();
                             if let BFTORSetOp::Add(e2) = &n.value {
-                                hash_graph.is_ancestor(&hn, node) // (C n (hs, Rem is e))
+                                let res = hash_graph.is_ancestor(&hn, node); // (C n (hs, Rem is e))
+                                trace!("End of is_sem_valid by Remove operation ancestor check");
+                                res
                             } else {
+                                trace!("End of is_sem_valid by Remove operation value check");
                                 false
                             }
                         }
-                        None => false
+                        None => {
+                            trace!("End of is_sem_valid by Remove operation node check");
+                            false
+                        }
                     }
                 })
             }

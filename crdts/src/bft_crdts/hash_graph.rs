@@ -1,14 +1,23 @@
 use std::collections::HashMap;
+use std::fmt::Debug;
 use sha2::{Digest, Sha256};
 use hex;
+use tracing::trace;
 use crate::serialize::Serialize;
 
 pub type HashType = String;
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Node<T: Serialize + Clone> {
     pub predecessors: Vec<HashType>,
     pub value: T,
+}
+
+impl <T: Serialize + Clone> Debug for Node<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let hash = self.get_hash();
+        write!(f, "{:?}", &hash[0..8])
+    }
 }
 
 impl <T: Serialize + Clone> Node<T> {
@@ -42,11 +51,13 @@ impl<T: Serialize + Clone> HashGraph<T> {
     
 
     pub fn is_structurally_valid(&self, node: &Node<T>) -> bool {
+        trace!("Begin of is_structurally_valid");
         for pred in &node.predecessors {
             if !self.nodes.contains_key(pred) {
                 return false;
             }
         }
+        trace!("End of is_structurally_valid");
         true
     }
     
