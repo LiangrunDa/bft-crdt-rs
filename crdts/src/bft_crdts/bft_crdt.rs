@@ -167,7 +167,8 @@ impl <O: Serialize + Clone, T: BFTCRDT<O>> BFTCRDTHandler<O, T> {
     pub fn handle_remote_node(&mut self, remote_node: Node<O>) {
         let struct_valid = self.hash_graph.is_structurally_valid(&remote_node);
         if !struct_valid {
-            return;
+            self.pending_nodes.push(remote_node);
+            return ;
         }
         let sem_valid = self.crdt.is_sem_valid(&remote_node, &self.hash_graph);
         if sem_valid {

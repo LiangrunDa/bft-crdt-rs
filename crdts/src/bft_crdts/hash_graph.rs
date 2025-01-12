@@ -37,7 +37,7 @@ impl <T: Serialize + Clone> Node<T> {
 
 pub struct HashGraph<T: Serialize + Clone> {
     pub nodes: HashMap<HashType, Node<T>>,
-    pub heads: Vec<HashType>,
+    heads: Vec<HashType>,
 }
 
 impl<T: Serialize + Clone> HashGraph<T> {
@@ -61,7 +61,15 @@ impl<T: Serialize + Clone> HashGraph<T> {
     
     pub fn add_node(&mut self, node: Node<T>) {
         let hash = node.get_hash();
-        self.nodes.insert(hash.clone(), node);
+        
+        // Remove predecessors from heads
+        self.heads.retain(|head| !node.predecessors.contains(head));
+        
+        // Add new node to heads
+        self.heads.push(hash.clone());
+        
+        // Add node to graph
+        self.nodes.insert(hash, node);
     }
     
     pub fn add_value_with_head_preds(&mut self, value: T) -> Option<HashType> {

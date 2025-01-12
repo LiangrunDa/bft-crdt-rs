@@ -178,7 +178,90 @@ impl ORSetExperiment {
                 inputs
             }
             1 => {
-                panic!("1")
+                let mut inputs = vec![];
+                for _ in 0..self.args.depth {
+                    if self.generator.rng.gen::<f32>() < 0.5 {
+                        // 50% chance to generate random structurally valid node
+                        if self.generator.rng.gen::<f32>() < 0.2 {
+                            // 20% chance to generate remove
+                            let rem = self.generator.generate_random_struct_valid_rem_node();
+                            inputs.push(rem);
+                        } else {
+                            // 80% chance to generate add
+                            let add = self.generator.generate_random_struct_valid_add_node();
+                            inputs.push(add);
+                        }
+                    } else {
+                        // 50% chance to generate valid node
+                        if self.generator.rng.gen::<f32>() < 0.2 {
+                            // 20% chance to generate remove
+                            let rem = self.generator.generate_valid_rem();
+                            inputs.push(rem);
+                        } else {
+                            // 80% chance to generate add
+                            let add = self.generator.generate_valid_add();
+                            inputs.push(add);
+                        }
+                    }
+                }
+                inputs
+            }
+            2 => {
+                let mut inputs = vec![];
+                for _ in 0..self.args.depth {
+                    let rand = self.generator.rng.gen::<f32>();
+                    if rand < 0.2 {
+                        // 20% chance to generate random node
+                        if self.generator.rng.gen::<f32>() < 0.2 {
+                            // 20% chance to generate remove
+                            let rem = self.generator.generate_random_rem();
+                            inputs.push(rem);
+                        } else {
+                            // 80% chance to generate add
+                            let add = self.generator.generate_random_add();
+                            inputs.push(add);
+                        }
+                    } else if rand < 0.6 {
+                        // 40% chance to generate random structurally valid node
+                        if self.generator.rng.gen::<f32>() < 0.2 {
+                            // 20% chance to generate remove
+                            let rem = self.generator.generate_random_struct_valid_rem_node();
+                            inputs.push(rem);
+                        } else {
+                            // 80% chance to generate add
+                            let add = self.generator.generate_random_struct_valid_add_node();
+                            inputs.push(add);
+                        }
+                    } else {
+                        // 40% chance to generate valid node
+                        if self.generator.rng.gen::<f32>() < 0.2 {
+                            // 20% chance to generate remove
+                            let rem = self.generator.generate_valid_rem();
+                            inputs.push(rem);
+                        } else {
+                            // 80% chance to generate add
+                            let add = self.generator.generate_valid_add();
+                            inputs.push(add);
+                        }
+                    }
+                }
+                inputs
+            }
+            3 => {
+                println!("3");
+                let mut inputs = vec![];
+                for _ in 0..self.args.depth {
+                    if self.generator.rng.gen::<f32>() < 0.2 {
+                        // 20% chance to generate remove
+                        let rem = self.generator.generate_random_rem();
+                        inputs.push(rem);
+                    } else {
+                        // 80% chance to generate add
+                        let add = self.generator.generate_random_add();
+                        inputs.push(add);
+                    }
+                }
+                inputs
             }
             _ => panic!("Experiment {} not implemented", exp_num),
         }

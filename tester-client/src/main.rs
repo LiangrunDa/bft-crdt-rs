@@ -10,7 +10,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     if args.seed == 0 {
         args.seed = rand::random();
     }
-    let _file_appender_guard = logger::init(String::from("debug"), "tokio=error,crdts=trace")?;
+    let _file_appender_guard = logger::init(String::from("debug"), "tokio=error,crdts=error")?;
     info!("Starting experiment with args: {:?}", args);
 
     let res = match args.exp_name.as_str() {

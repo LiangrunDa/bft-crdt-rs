@@ -9,7 +9,7 @@ pub struct Args {
     #[clap(short, long)]
     pub num: u8,
     #[clap(short, long)]
-    pub depth: u8,
+    pub depth: u32,
     #[clap(short, long, default_value = "0")]
     pub seed: u64,
     
