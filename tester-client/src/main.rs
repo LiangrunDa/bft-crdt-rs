@@ -6,19 +6,27 @@ mod logger;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let args = cli::parse_args();
+    let mut args = cli::parse_args();
+    if args.seed == 0 {
+        args.seed = rand::random();
+    }
     let _file_appender_guard = logger::init(String::from("debug"), "tokio=error,crdts=trace")?;
     info!("Starting experiment with args: {:?}", args);
-    
-    match args.exp_name.as_str() {
+
+    let res = match args.exp_name.as_str() {
         "orset" => {
             let mut orset_experiment = orset::ORSetExperiment::new(args);
-            orset_experiment.run().await?;
+            orset_experiment.run().await
         }
         _ => {
             panic!("Experiment not supported");
         }
+    };
+    
+    match res {
+        Ok(_) => info!("Experiment completed successfully"),
+        Err(e) => info!("Experiment failed with error: {:?}", e),
     }
-
+    
     Ok(())
 }

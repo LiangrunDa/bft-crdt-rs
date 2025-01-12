@@ -8,7 +8,11 @@ pub struct Args {
     pub exp_name: String,
     #[clap(short, long)]
     pub num: u8,
-
+    #[clap(short, long)]
+    pub depth: u8,
+    #[clap(short, long, default_value = "0")]
+    pub seed: u64,
+    
     #[clap(long, default_value = "localhost:50051")]
     pub server1: String,
     

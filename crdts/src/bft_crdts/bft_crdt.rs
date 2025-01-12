@@ -1,12 +1,13 @@
 use std::cmp::min;
 use std::fmt::Debug;
-use std::hash::Hash;
 use crate::bft_crdts::hash_graph::{HashGraph, HashType, Node};
 use tracing::{trace};
 use crate::serialize::Serialize;
 use rand;
+use rand::{Rng, RngCore};
 use rand::prelude::SliceRandom;
-use rand::Rng;
+use rand::rngs::StdRng;
+use rand::SeedableRng;
 
 pub trait BFTCRDT<O: Serialize + Clone> {
     fn interpret_node(&mut self, node: &Node<O>);
@@ -48,23 +49,25 @@ impl <O: Serialize + Clone + Debug, T: BFTCRDT<O>> BFTCRDTTester<O, T> {
 pub struct BFTCRDTGenerator<O: Serialize + Clone, T: BFTCRDT<O>> {
     pub crdt: T,
     pub hash_graph: HashGraph<O>,
+    rng: StdRng,
 }
 
 impl <O: Serialize + Clone, T: BFTCRDT<O>> BFTCRDTGenerator<O, T> {
-    pub fn new(crdt: T) -> Self {
+
+    pub fn new(crdt: T, seed: u64) -> Self {
         BFTCRDTGenerator {
             crdt,
             hash_graph: HashGraph::new(),
+            rng: StdRng::seed_from_u64(seed),
         }
     }
 
     /// IMPORTANT: used only for correctness testing 
     pub fn generate_and_interpret_random_struct_valid_node(&mut self, op: O) -> Node<O> {
-        // random number of predecessors
-        let num_preds = rand::random::<u8>() % 10;
-        let num_preds = min(num_preds as usize, self.hash_graph.nodes.len());
+        let num_preds = (self.rng.next_u32() % 10) as usize;
+        let num_preds = min(num_preds, self.hash_graph.nodes.len());
         let mut preds = self.hash_graph.nodes.keys().cloned().collect::<Vec<HashType>>();
-        preds.shuffle(&mut rand::thread_rng());
+        preds.shuffle(&mut self.rng);
         preds.truncate(num_preds);
 
         let node = Node {
@@ -103,15 +106,12 @@ impl <O: Serialize + Clone, T: BFTCRDT<O>> BFTCRDTGenerator<O, T> {
     
     /// IMPORTANT: used only for testing
     pub fn generate_and_interpret_random_node(&mut self, op: O) -> Node<O> {
-        // random number of predecessors
-        let num_preds = rand::random::<u8>() % 10;
-        // generate random predecessors
+        let num_preds = (self.rng.next_u32() % 10) as usize;
         let mut preds: Vec<HashType> = vec![];
         
         for _ in 0..num_preds {
-            // generate random hash
             let mut hash = [0u8; 32];
-            rand::thread_rng().fill(&mut hash);
+            self.rng.fill(&mut hash);
             let hash = hex::encode(hash);
             preds.push(hash);
         }

@@ -2,7 +2,6 @@ use std::hash::Hash;
 use crate::bft_crdts::hash_graph::{HashGraph, HashType, Node};
 use crate::bft_crdts::bft_crdt::BFTCRDT;
 use crate::crdts::ordered_list::OrderedList;
-use sha2::{Digest};
 use crate::serialize::Serialize;
 
 //  The ID of each element in RGA affects the position of the element in the list, since 
@@ -94,14 +93,13 @@ where
             //         i' = (fst ii)) ∧ 
             //         H (hs, Insert v i ei) ≠ snd ii
             //   )›
-            BFTRGAOp::Insert(v, i, ei) => {
+            BFTRGAOp::Insert(_v, _i, ei) => {
                 match ei {
                     Some((id, hash)) => {
                         let ref_node_res = hash_graph.get_node(&hash); // H (hs', Insert v' i' ei') = snd ii
                         if let Some(ref_node) = ref_node_res {
-                            if let BFTRGAOp::Insert(v2, i2, ei2) = &node.value {
+                            if let BFTRGAOp::Insert(_v2, i2, _ei2) = &node.value {
                                 let ref_hash = ref_node.get_hash();
-                                let hash = node.get_hash();
                                 if hash_graph.is_ancestor(&ref_hash, node) && &id == i2 {
                                     true
                                 } else {
@@ -119,7 +117,7 @@ where
                     }
                 }
             }
-            BFTRGAOp::Delete(eid) => {
+            BFTRGAOp::Delete(_eid) => {
                 false
             }
         }

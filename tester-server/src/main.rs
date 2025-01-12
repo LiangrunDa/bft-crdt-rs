@@ -65,7 +65,7 @@ impl BftcrdtTesterService for BftCrdtTesterServer {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let _file_appender_guard = logger::init(String::from("debug"), "tokio=error,crdts=trace")?;
-    let addr = "[::1]:50052".parse()?;
+    let addr = "[::1]:50051".parse()?;
     let tester = BftCrdtTesterServer::default();
 
     info!("Server listening on {}", addr);
