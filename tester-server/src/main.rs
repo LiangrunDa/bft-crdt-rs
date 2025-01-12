@@ -20,17 +20,17 @@ impl BftcrdtTesterService for BftCrdtTesterServer {
         &self,
         request: Request<OrSetRequest>,
     ) -> Result<Response<OrSetResponse>, Status> {
-        let mut tester: BFTCRDTTester<BFTORSetOp<String>, BFTORSet<String>> = BFTCRDTTester::new(BFTORSet::new());
+        let mut tester: BFTCRDTTester<BFTORSetOp<i32>, BFTORSet<i32>> = BFTCRDTTester::new(BFTORSet::new());
 
         for node in request.into_inner().nodes {
             // Store it as String for convenience (to align with hash function defined in Scala)
-            let op :BFTORSetOp<String> = match node.operation {
+            let op :BFTORSetOp<i32> = match node.operation {
                 Some(inner_op) => match inner_op {
                     Operation::Add(e) => {
-                        BFTORSetOp::Add(e.elem.to_string())
+                        BFTORSetOp::Add(e.elem)
                     }
                     Operation::Rem(r) => {
-                        BFTORSetOp::Remove(r.elem.to_string(), r.ids)
+                        BFTORSetOp::Remove(r.elem, r.ids)
                     }
                 }
                 None => return Err(Status::invalid_argument("Operation not provided")),
@@ -49,7 +49,7 @@ impl BftcrdtTesterService for BftCrdtTesterServer {
             elem_ids.sort();
             
             // parse String to i32
-            result_map.insert(k.parse().unwrap(), or_set_response::ElemIds {
+            result_map.insert(*k, or_set_response::ElemIds {
                 elem_id: elem_ids
             });
         }
