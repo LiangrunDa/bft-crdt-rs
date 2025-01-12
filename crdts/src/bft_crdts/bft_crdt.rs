@@ -1,23 +1,25 @@
 use crate::bft_crdts::hash_graph::{HashGraph, Node};
+use tracing::{info, trace};
+use crate::serialize::Serialize;
 
-pub trait BFTCRDT<O: Into<Vec<u8>> + Clone> {
+pub trait BFTCRDT<O: Serialize + Clone> {
     fn interpret_node(&mut self, node: &Node<O>);
     fn is_sem_valid(&self, op: &Node<O>, hash_graph: &HashGraph<O>) -> bool;
 }
 
-pub struct BFTCRDTTester<O: Into<Vec<u8>> + Clone, T: BFTCRDT<O>> {
+pub struct BFTCRDTTester<O: Serialize + Clone, T: BFTCRDT<O>> {
     pub crdt: T,
     pub hash_graph: HashGraph<O>,
 }
 
-impl <O: Into<Vec<u8>> + Clone, T: BFTCRDT<O>> BFTCRDTTester<O, T> {
+impl <O: Serialize + Clone, T: BFTCRDT<O>> BFTCRDTTester<O, T> {
     pub fn new(crdt: T) -> Self {
         BFTCRDTTester {
             crdt,
             hash_graph: HashGraph::new(),
         }
     }
-    
+
     pub fn handle_node(&mut self, remote_node: Node<O>) {
         let struct_valid = self.hash_graph.is_structurally_valid(&remote_node);
         if !struct_valid {
@@ -31,13 +33,13 @@ impl <O: Into<Vec<u8>> + Clone, T: BFTCRDT<O>> BFTCRDTTester<O, T> {
     }
 }
 
-pub struct BFTCRDTHandler<O: Into<Vec<u8>> + Clone, T: BFTCRDT<O>> {
+pub struct BFTCRDTHandler<O: Serialize + Clone, T: BFTCRDT<O>> {
     pub crdt: T,
     pub hash_graph: HashGraph<O>,
     pub pending_nodes: Vec<Node<O>>,
 }
 
-impl <O: Into<Vec<u8>> + Clone, T: BFTCRDT<O>> BFTCRDTHandler<O, T> {
+impl <O: Serialize + Clone, T: BFTCRDT<O>> BFTCRDTHandler<O, T> {
     pub fn new(crdt: T) -> Self {
         BFTCRDTHandler {
             crdt,

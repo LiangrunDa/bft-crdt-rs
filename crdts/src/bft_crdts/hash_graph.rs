@@ -1,16 +1,17 @@
 use std::collections::HashMap;
 use sha2::{Digest, Sha256};
 use hex;
+use crate::serialize::Serialize;
 
 pub type HashType = String;
 
 #[derive(Debug, Clone)]
-pub struct Node<T: Into<Vec<u8>> + Clone> {
+pub struct Node<T: Serialize + Clone> {
     pub predecessors: Vec<HashType>,
     pub value: T,
 }
 
-impl <T: Into<Vec<u8>> + Clone> Node<T> {
+impl <T: Serialize + Clone> Node<T> {
     pub fn get_hash(&self) -> HashType {
         let mut hasher = Sha256::new();
         let mut sorted_preds = self.predecessors.clone();
@@ -18,19 +19,19 @@ impl <T: Into<Vec<u8>> + Clone> Node<T> {
         for pred in sorted_preds {
             hasher.update(pred.as_bytes());
         }
-        let value_bytes = self.value.clone().into();
+        let value_bytes = self.value.clone().to_bytes();
         hasher.update(value_bytes);
         let hash = hasher.finalize().to_vec();
         hex::encode(hash)
     }
 }
 
-pub struct HashGraph<T: Into<Vec<u8>> + Clone> {
+pub struct HashGraph<T: Serialize + Clone> {
     nodes: HashMap<HashType, Node<T>>,
     heads: Vec<HashType>,
 }
 
-impl<T: Into<Vec<u8>> + Clone> HashGraph<T> {
+impl<T: Serialize + Clone> HashGraph<T> {
     pub fn new() -> Self {
         HashGraph {
             nodes: HashMap::new(),

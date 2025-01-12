@@ -2,7 +2,8 @@ use std::hash::Hash;
 use crate::bft_crdts::hash_graph::{HashGraph, HashType, Node};
 use crate::bft_crdts::bft_crdt::BFTCRDT;
 use crate::crdts::ordered_list::OrderedList;
-use sha2::{Digest, Sha256};
+use sha2::{Digest};
+use crate::serialize::Serialize;
 
 //  The ID of each element in RGA affects the position of the element in the list, since 
 //   $\isa{insert-body}$ skips over the elements that have greater IDs than the inserted element. 
@@ -24,20 +25,20 @@ pub enum BFTRGAOp<I, V> {
     Delete(RGAID<I>),
 }
 
-impl<I, V> Into<Vec<u8>> for BFTRGAOp<I, V>
+impl<I, V> Serialize for BFTRGAOp<I, V>
 where
-    I: Eq + Hash + Clone + Into<Vec<u8>> + PartialOrd,
-    V: Eq + Hash + Clone + Into<Vec<u8>>,
+    I: Eq + Hash + Clone + Serialize + PartialOrd,
+    V: Eq + Hash + Clone + Serialize,
 {
-    fn into(self) -> Vec<u8> {
+    fn to_bytes(&self) -> Vec<u8> {
         match self {
             BFTRGAOp::Insert(v, i, rga_id) => {
                 let mut bytes = vec![];
-                bytes.extend_from_slice(&v.into());
-                bytes.extend_from_slice(&i.into());
+                bytes.extend_from_slice(&v.to_bytes());
+                bytes.extend_from_slice(&i.to_bytes());
                 match rga_id {
                     Some((id, hash)) => {
-                        bytes.extend_from_slice(&id.into());
+                        bytes.extend_from_slice(&id.to_bytes());
                         bytes.extend_from_slice(hash.as_bytes());
                     }
                     None => {}
@@ -46,7 +47,7 @@ where
             }
             BFTRGAOp::Delete(rga_id) => {
                 let mut bytes = vec![];
-                bytes.extend_from_slice(&rga_id.0.into());
+                bytes.extend_from_slice(&rga_id.0.to_bytes());
                 bytes.extend_from_slice(&rga_id.1.as_bytes());
                 bytes
             }
@@ -56,16 +57,16 @@ where
 
 pub struct BFTRGA<I, V>
 where
-    I: Eq + Hash + Clone + Into<Vec<u8>> + PartialOrd,
-    V: Eq + Hash + Clone + Into<Vec<u8>>,
+    I: Eq + Hash + Clone + Serialize + PartialOrd,
+    V: Eq + Hash + Clone + Serialize,
 {
     elements: OrderedList<RGAID<I>, V>,
 }
 
 impl <I, V> BFTCRDT<BFTRGAOp<I, V>> for BFTRGA<I, V>
 where
-    I: Eq + Hash + Clone + Into<Vec<u8>> + PartialOrd,
-    V: Eq + Hash + Clone + Into<Vec<u8>>,
+    I: Eq + Hash + Clone + Serialize + PartialOrd,
+    V: Eq + Hash + Clone + Serialize,
 {
     fn interpret_node(&mut self, node: &Node<BFTRGAOp<I, V>>) {
         let op = &node.value;
@@ -127,8 +128,8 @@ where
 
 impl<I, V> BFTRGA<I, V> 
 where 
-    I: Eq + Hash + Clone + Into<Vec<u8>> + PartialOrd,
-    V: Eq + Hash + Clone + Into<Vec<u8>>,
+    I: Eq + Hash + Clone + Serialize + PartialOrd,
+    V: Eq + Hash + Clone + Serialize,
 {
     pub fn new() -> Self {
         BFTRGA {

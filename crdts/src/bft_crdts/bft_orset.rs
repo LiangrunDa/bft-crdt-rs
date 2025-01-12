@@ -4,6 +4,7 @@ use crate::bft_crdts::bft_crdt::BFTCRDT;
 use crate::bft_crdts::hash_graph::{HashGraph, Node};
 use sha2::{Digest, Sha256};
 use crate::bft_crdts::hash_graph::HashType;
+use crate::serialize::Serialize;
 
 type ORSetID = HashType; // in BFT ORSet, ID is the hash value of the element's Add operation
 
@@ -13,25 +14,25 @@ pub enum BFTORSetOp<E> {
     Remove(E, Vec<ORSetID>),
 }
 
-impl<E> Into<Vec<u8>> for BFTORSetOp<E>
+impl<E> Serialize for BFTORSetOp<E>
 where
-    E: Eq + Hash + Clone + Into<Vec<u8>>,
+    E: Eq + Hash + Clone + Serialize,
 {
-    fn into(self) -> Vec<u8> {
+    fn to_bytes(&self) -> Vec<u8> {
         match self {
             BFTORSetOp::Add(e) => {
                 let mut bytes = vec![];
-                bytes.extend_from_slice(&e.into());
+                bytes.extend_from_slice(&e.to_bytes());
                 bytes
             }
             BFTORSetOp::Remove(e, ids) => {
                 let mut bytes = vec![];
-                let mut sorted_ids = ids;
+                let mut sorted_ids = ids.clone();
                 sorted_ids.sort();
-                for (i, id) in sorted_ids.iter().enumerate() {
+                for id in sorted_ids.iter() {
                     bytes.extend_from_slice(id.as_bytes());
                 }
-                bytes.extend_from_slice(&e.into());
+                bytes.extend_from_slice(&e.to_bytes());
                 bytes
             }
         }
@@ -40,14 +41,14 @@ where
 
 pub struct BFTORSet<E>
 where
-    E: Eq + Hash + Clone + Into<Vec<u8>>,
+    E: Eq + Hash + Clone + Serialize,
 {
     pub elements: HashMap<E, HashSet<ORSetID>>,
 }
 
 impl<E> BFTORSet<E>
 where
-    E: Eq + Hash + Clone + Into<Vec<u8>>,
+    E: Eq + Hash + Clone + Serialize,
 {
     pub fn new() -> Self {
         BFTORSet {
@@ -89,7 +90,7 @@ where
 
 impl<E> BFTCRDT<BFTORSetOp<E>> for BFTORSet<E>
 where
-    E: Eq + Hash + Clone + Into<Vec<u8>>,
+    E: Eq + Hash + Clone + Serialize,
 {
     fn interpret_node(&mut self, node: &Node<BFTORSetOp<E>>) {
         let op = &node.value;
