@@ -1,7 +1,12 @@
+use std::cmp::min;
 use std::fmt::Debug;
-use crate::bft_crdts::hash_graph::{HashGraph, Node};
+use std::hash::Hash;
+use crate::bft_crdts::hash_graph::{HashGraph, HashType, Node};
 use tracing::{trace};
 use crate::serialize::Serialize;
+use rand;
+use rand::prelude::SliceRandom;
+use rand::Rng;
 
 pub trait BFTCRDT<O: Serialize + Clone> {
     fn interpret_node(&mut self, node: &Node<O>);
@@ -30,12 +35,107 @@ impl <O: Serialize + Clone + Debug, T: BFTCRDT<O>> BFTCRDTTester<O, T> {
         }
         let sem_valid = self.crdt.is_sem_valid(&remote_node, &self.hash_graph);
         if sem_valid {
-            self.hash_graph.add_remote_node(remote_node.clone());
+            self.hash_graph.add_node(remote_node.clone());
             trace!("Interpreting node");
             self.crdt.interpret_node(&remote_node);
             trace!("Node interpreted");
         }
         trace!("End of handle_node");
+    }
+}
+
+/// IMPORTANT: used only for testing
+pub struct BFTCRDTGenerator<O: Serialize + Clone, T: BFTCRDT<O>> {
+    pub crdt: T,
+    pub hash_graph: HashGraph<O>,
+}
+
+impl <O: Serialize + Clone, T: BFTCRDT<O>> BFTCRDTGenerator<O, T> {
+    pub fn new(crdt: T) -> Self {
+        BFTCRDTGenerator {
+            crdt,
+            hash_graph: HashGraph::new(),
+        }
+    }
+
+    /// IMPORTANT: used only for correctness testing 
+    pub fn generate_and_interpret_random_struct_valid_node(&mut self, op: O) -> Node<O> {
+        // random number of predecessors
+        let num_preds = rand::random::<u8>() % 10;
+        let num_preds = min(num_preds as usize, self.hash_graph.nodes.len());
+        let mut preds = self.hash_graph.nodes.keys().cloned().collect::<Vec<HashType>>();
+        preds.shuffle(&mut rand::thread_rng());
+        preds.truncate(num_preds);
+
+        let node = Node {
+            predecessors: preds,
+            value: op,
+        };
+        if !self.hash_graph.is_structurally_valid(&node) {
+            // this should never happen
+            panic!("Generated node is not structurally valid");
+        }
+
+        let sem_valid = self.crdt.is_sem_valid(&node, &self.hash_graph);
+        if sem_valid {
+            // we happen to generate a semantically valid node
+            self.hash_graph.add_node(node.clone());
+            self.crdt.interpret_node(&node);
+            node
+        } else {
+            // more likely we generated a node that is not semantically valid
+            node
+        }
+    }
+
+    /// IMPORTANT: used only for testing 
+    pub fn generate_and_interpret_valid_node(&mut self, op: O) -> Node<O> {
+        let h = self.hash_graph.add_value_with_head_preds(op.clone());
+        if h.is_none() {
+            // this should never happen
+            panic!("Failed to add local node");
+        }
+        let node = self.hash_graph.get_node(&h.unwrap()).unwrap();
+        self.crdt.interpret_node(&node);
+        node.clone()
+    }
+    
+    
+    /// IMPORTANT: used only for testing
+    pub fn generate_and_interpret_random_node(&mut self, op: O) -> Node<O> {
+        // random number of predecessors
+        let num_preds = rand::random::<u8>() % 10;
+        // generate random predecessors
+        let mut preds: Vec<HashType> = vec![];
+        
+        for _ in 0..num_preds {
+            // generate random hash
+            let mut hash = [0u8; 32];
+            rand::thread_rng().fill(&mut hash);
+            let hash = hex::encode(hash);
+            preds.push(hash);
+        }
+
+        let node = Node {
+            predecessors: preds,
+            value: op,
+        };
+        
+        let struct_valid = self.hash_graph.is_structurally_valid(&node);
+        if !struct_valid {
+            // almost always this will be the case
+            return node;
+        }
+        
+        let sem_valid = self.crdt.is_sem_valid(&node, &self.hash_graph);
+        if sem_valid {
+            // we happen to generate a semantically valid node
+            self.hash_graph.add_node(node.clone());
+            self.crdt.interpret_node(&node);
+            return node;
+        }
+        // more likely we generated a node that is not semantically valid
+        node
     }
 }
 
@@ -55,7 +155,7 @@ impl <O: Serialize + Clone, T: BFTCRDT<O>> BFTCRDTHandler<O, T> {
     }
     
     pub fn handle_local_op(&mut self, op: O) {
-        let h = self.hash_graph.add_local_node(op.clone());
+        let h = self.hash_graph.add_value_with_head_preds(op.clone());
         if h.is_none() {
             // this should never happen
             panic!("Failed to add local node");
@@ -71,7 +171,7 @@ impl <O: Serialize + Clone, T: BFTCRDT<O>> BFTCRDTHandler<O, T> {
         }
         let sem_valid = self.crdt.is_sem_valid(&remote_node, &self.hash_graph);
         if sem_valid {
-            self.hash_graph.add_remote_node(remote_node.clone());
+            self.hash_graph.add_node(remote_node.clone());
             self.crdt.interpret_node(&remote_node);
             self.handle_pending_nodes();
         } else {
@@ -87,7 +187,7 @@ impl <O: Serialize + Clone, T: BFTCRDT<O>> BFTCRDTHandler<O, T> {
                 let struct_valid = self.hash_graph.is_structurally_valid(&node);
                 if struct_valid {
                     if self.crdt.is_sem_valid(&node, &self.hash_graph) {
-                        self.hash_graph.add_remote_node(node.clone());
+                        self.hash_graph.add_node(node.clone());
                         self.crdt.interpret_node(&node);
                         changed = true;
                     }

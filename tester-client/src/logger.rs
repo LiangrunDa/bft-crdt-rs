@@ -45,10 +45,10 @@ pub fn init(
     let rust_log = format!("{rust_log},{underscored_project_name}={level}");
     std::env::set_var("RUST_LOG", rust_log);
 
-    let file_appender = RollingFileAppender::new(Rotation::MINUTELY, "./logs", "tester");
+    let file_appender = RollingFileAppender::new(Rotation::MINUTELY, "./logs", "tester-client");
     let (file_appender, file_appender_guard) = tracing_appender::non_blocking(file_appender);
     init_subscriber(create_subscriber(
-        "tester",
+        "tester-client",
         EnvFilter::from_default_env(),
         file_appender,
     ))?;

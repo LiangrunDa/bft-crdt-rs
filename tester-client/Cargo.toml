@@ -1,0 +1,21 @@
+[package]
+name = "tester-client"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = { version = "1.28.0", features = ["full"] }
+crdts = { path = "../crdts" }
+tonic = "0.9.2"
+protocol = { path = "../protocol" }
+tracing = { version = "0.1.40", features = ["attributes"] }
+tracing-appender = "0.2.3"
+tracing-bunyan-formatter = "0.3.9"
+tracing-log = "0.2.0"
+tracing-subscriber = { version = "0.3.18", features = [
+    "registry",
+    "env-filter",
+] }
+anyhow = "1.0.95"
+clap = { version = "4.2.5", features = ["derive", "env"] }
+rand = "0.8.5"

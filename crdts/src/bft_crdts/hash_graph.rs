@@ -36,8 +36,8 @@ impl <T: Serialize + Clone> Node<T> {
 }
 
 pub struct HashGraph<T: Serialize + Clone> {
-    nodes: HashMap<HashType, Node<T>>,
-    heads: Vec<HashType>,
+    pub nodes: HashMap<HashType, Node<T>>,
+    pub heads: Vec<HashType>,
 }
 
 impl<T: Serialize + Clone> HashGraph<T> {
@@ -48,8 +48,6 @@ impl<T: Serialize + Clone> HashGraph<T> {
         }
     }
     
-    
-
     pub fn is_structurally_valid(&self, node: &Node<T>) -> bool {
         trace!("Begin of is_structurally_valid");
         for pred in &node.predecessors {
@@ -61,12 +59,12 @@ impl<T: Serialize + Clone> HashGraph<T> {
         true
     }
     
-    pub fn add_remote_node(&mut self, node: Node<T>) {
+    pub fn add_node(&mut self, node: Node<T>) {
         let hash = node.get_hash();
         self.nodes.insert(hash.clone(), node);
     }
     
-    pub fn add_local_node(&mut self, value: T) -> Option<HashType> {
+    pub fn add_value_with_head_preds(&mut self, value: T) -> Option<HashType> {
         let node = Node {
             predecessors: self.heads.clone(),
             value,
@@ -108,7 +106,7 @@ mod tests {
     #[test]
     fn test_add_node() {
         let mut graph: HashGraph<Vec<u8>> = HashGraph::new();
-        let hash = graph.add_local_node(b"test".to_vec());
+        let hash = graph.add_value_with_head_preds(b"test".to_vec());
         let mut hasher = Sha256::new();
         hasher.update(b"test");
         let expected_hash = hex::encode(hasher.finalize().to_vec());
@@ -120,8 +118,8 @@ mod tests {
     #[test]
     fn test_add_multiple_nodes() {
         let mut graph: HashGraph<Vec<u8>> = HashGraph::new();
-        let hash1 = graph.add_local_node(b"test1".to_vec());
-        let hash2 = graph.add_local_node(b"test2".to_vec());
+        let hash1 = graph.add_value_with_head_preds(b"test1".to_vec());
+        let hash2 = graph.add_value_with_head_preds(b"test2".to_vec());
         let mut hasher = Sha256::new();
         hasher.update(b"test1");
         let expected_hash1 = hex::encode(hasher.finalize().to_vec());

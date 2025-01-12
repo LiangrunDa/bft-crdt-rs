@@ -55,7 +55,7 @@ impl BftcrdtTesterService for BftCrdtTesterServer {
         }
         
         let reply = OrSetResponse {
-            result_map: result_map,
+            result_map,
         };
         
         Ok(Response::new(reply))
