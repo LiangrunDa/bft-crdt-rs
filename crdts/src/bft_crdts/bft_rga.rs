@@ -1,3 +1,4 @@
+use std::fmt::{Debug, Display};
 use std::hash::Hash;
 use crate::bft_crdts::hash_graph::{HashGraph, HashType, Node};
 use crate::bft_crdts::bft_crdt::BFTCRDT;
@@ -22,6 +23,23 @@ pub enum BFTRGAOp<I, V> {
     Insert(V, I, Option<RGAID<I>>),
     // ei
     Delete(RGAID<I>),
+}
+
+impl <I, V> Display for BFTRGAOp<I, V>
+where
+    I: Eq + Hash + Clone + Serialize + PartialOrd + Debug,
+    V: Eq + Hash + Clone + Serialize + Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            BFTRGAOp::Insert(v, i, rga_id) => {
+                write!(f, "Insert({:?}, {:?}, {:?})", v, i, rga_id)
+            }
+            BFTRGAOp::Delete(rga_id) => {
+                write!(f, "Delete({:?})", rga_id)
+            }
+        }
+    }
 }
 
 impl<I, V> Serialize for BFTRGAOp<I, V>
@@ -84,21 +102,20 @@ where
         let op = node.clone().value;
         match op {
             // ‹is_rga_sem_valid C H G (hs, Insert v i ei) = (
-            //     case ei of 
-            //       None ⇒ True
-            //     | Some ii ⇒ (∃hs' v' i' ei'. 
-            //         (hs', Insert v' i' ei') ∈ G ∧
-            //         C (hs', Insert v' i' ei') (hs, Insert v i ei) ∧ 
-            //         H (hs', Insert v' i' ei') = snd ii ∧
-            //         i' = (fst ii)) ∧ 
+            //     case ei of
+            //         None ⇒ True
+            //         | Some ii ⇒ (∃e ∈ G.
+            //         C e (hs, Insert v i ei) ∧
+            //         H e = snd ii ∧
+            //         (ref_id (snd e)) = Some (fst ii)) ∧
             //         H (hs, Insert v i ei) ≠ snd ii
-            //   )›
+            //         )›
             BFTRGAOp::Insert(_v, _i, ei) => {
                 match ei {
                     Some((id, hash)) => {
                         let ref_node_res = hash_graph.get_node(&hash); // H (hs', Insert v' i' ei') = snd ii
                         if let Some(ref_node) = ref_node_res {
-                            if let BFTRGAOp::Insert(_v2, i2, _ei2) = &node.value {
+                            if let BFTRGAOp::Insert(_v2, i2, _ei2) = &ref_node.value {
                                 let ref_hash = ref_node.get_hash();
                                 if hash_graph.is_ancestor(&ref_hash, node) && &id == i2 {
                                     true
@@ -117,8 +134,30 @@ where
                     }
                 }
             }
-            BFTRGAOp::Delete(_eid) => {
-                false
+            BFTRGAOp::Delete(ei) => {
+                // ‹is_rga_sem_valid C H G (hs, Delete ei) = (∃e ∈ G.
+                //     C e (hs, Delete ei) ∧
+                // H e = snd ei ∧
+                // (ref_id (snd e)) = Some (fst ei)
+                let hash = ei.1.clone();
+                let e = hash_graph.get_node(&hash);
+                if let Some(n) = e {
+                    if let BFTRGAOp::Insert(v2, i2, ei2) = &n.value {
+                        if &ei.0 == i2 {
+                            if hash_graph.is_ancestor(&hash, node) {
+                                true
+                            } else {
+                                false
+                            }
+                        } else {
+                            false
+                        }
+                    } else {
+                        false
+                    }
+                } else {
+                    false
+                }
             }
         }
     }

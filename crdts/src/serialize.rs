@@ -73,3 +73,13 @@ impl Serialize for &str {
         self.as_bytes().to_vec()
     }
 }
+
+impl<T: Serialize> Serialize for (T, T) {
+    fn to_bytes(&self) -> Vec<u8> {
+        let mut bytes = Vec::new();
+        bytes.extend(self.0.to_bytes());
+        bytes.extend(self.1.to_bytes());
+        bytes
+    }
+}
+

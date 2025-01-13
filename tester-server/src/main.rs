@@ -1,12 +1,14 @@
 use std::collections::HashMap;
 use protocol::bftcrdtrpc::bftcrdt_tester_service_server::{BftcrdtTesterService, BftcrdtTesterServiceServer};
-use protocol::bftcrdtrpc::{or_set_response, OrSetRequest, OrSetResponse};
+use protocol::bftcrdtrpc::{or_set_response, OrSetRequest, OrSetResponse, RgaRequest, RgaResponse};
 use tonic::{transport::Server, Request, Response, Status};
 use tracing::info;
 use crdts::bft_crdts::bft_crdt::BFTCRDTTester;
 use crdts::bft_crdts::bft_orset::{BFTORSet, BFTORSetOp};
-use crdts::bft_crdts::hash_graph::Node;
-use protocol::bftcrdtrpc::or_set_node_message::Operation;
+use crdts::bft_crdts::bft_rga::{BFTRGAOp, BFTRGA};
+use crdts::bft_crdts::hash_graph::{Node};
+use protocol::bftcrdtrpc::or_set_node_message::Operation as OrSetOperation;
+use protocol::bftcrdtrpc::rga_node_message::Operation as RGAOperation;
 
 mod logger;
 
@@ -16,6 +18,7 @@ pub struct BftCrdtTesterServer {}
 
 #[tonic::async_trait]
 impl BftcrdtTesterService for BftCrdtTesterServer {
+    
     async fn test_or_set_once(
         &self,
         request: Request<OrSetRequest>,
@@ -23,13 +26,12 @@ impl BftcrdtTesterService for BftCrdtTesterServer {
         let mut tester: BFTCRDTTester<BFTORSetOp<i32>, BFTORSet<i32>> = BFTCRDTTester::new(BFTORSet::new());
 
         for node in request.into_inner().nodes {
-            // Store it as String for convenience (to align with hash function defined in Scala)
             let op :BFTORSetOp<i32> = match node.operation {
                 Some(inner_op) => match inner_op {
-                    Operation::Add(e) => {
+                    OrSetOperation::Add(e) => {
                         BFTORSetOp::Add(e.elem)
                     }
-                    Operation::Rem(r) => {
+                    OrSetOperation::Rem(r) => {
                         BFTORSetOp::Remove(r.elem, r.ids)
                     }
                 }
@@ -58,6 +60,44 @@ impl BftcrdtTesterService for BftCrdtTesterServer {
             result_map,
         };
         
+        Ok(Response::new(reply))
+    }
+
+    async fn test_rga_once(&self, request: Request<RgaRequest>) -> Result<Response<RgaResponse>, Status> {
+
+        let mut tester: BFTCRDTTester<BFTRGAOp<String, i32>, BFTRGA<String, i32>> = BFTCRDTTester::new(BFTRGA::new());
+
+        for node in request.into_inner().nodes {
+            let op :BFTRGAOp<String, i32> = match node.operation {
+                Some(inner_op) => match inner_op {
+                    RGAOperation::Insert(e) => {
+                        let elem_id = e.elem_id
+                            .map(|id| (id.first, id.second));
+                        BFTRGAOp::Insert(e.value, e.id, elem_id)
+                    }
+                    RGAOperation::Delete(d) => {
+                        let elem_id = d.elem_id.map(|id| (id.first, id.second));
+                        BFTRGAOp::Delete(elem_id.unwrap())
+                    }
+                }
+                None => return Err(Status::invalid_argument("Operation not provided")),
+            };
+            let hash_node = Node {
+                predecessors: node.predecessors,
+                value: op,
+            };
+
+            tester.handle_node(hash_node);
+            let temp_list = tester.crdt.get_list();
+            println!("temp_list: {:?}", temp_list);
+        }
+        
+        let int_list = tester.crdt.get_list();
+        let result: String = int_list.iter().map(|x| x.to_string()).collect::<Vec<String>>().join(",");
+        
+        let reply = RgaResponse {
+            result,
+        };
         Ok(Response::new(reply))
     }
 }

@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet};
+use std::fmt::{Debug, Display};
 use std::hash::Hash;
 use crate::bft_crdts::bft_crdt::BFTCRDT;
 use crate::bft_crdts::hash_graph::{HashGraph, Node};
@@ -12,6 +13,22 @@ type ORSetID = HashType; // in BFT ORSet, ID is the hash value of the element's 
 pub enum BFTORSetOp<E> {
     Add(E),
     Remove(E, Vec<ORSetID>),
+}
+
+impl <E> Display for BFTORSetOp<E>
+where
+    E: Eq + Hash + Clone + Serialize + Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            BFTORSetOp::Add(e) => {
+                write!(f, "Add({:?})", e)
+            }
+            BFTORSetOp::Remove(e, ids) => {
+                write!(f, "Remove({:?}, {:?})", e, ids)
+            }
+        }
+    }
 }
 
 impl<E> Serialize for BFTORSetOp<E>

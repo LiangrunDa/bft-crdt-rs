@@ -61,6 +61,72 @@ pub mod or_set_response {
         pub elem_id: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
     }
 }
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RgaNodeMessage {
+    /// predecessor hashes
+    #[prost(string, repeated, tag = "1")]
+    pub predecessors: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(oneof = "rga_node_message::Operation", tags = "2, 3")]
+    pub operation: ::core::option::Option<rga_node_message::Operation>,
+}
+/// Nested message and enum types in `RGANodeMessage`.
+pub mod rga_node_message {
+    #[allow(clippy::derive_partial_eq_without_eq)]
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct InsertMessage {
+        /// Integer value
+        #[prost(int32, tag = "1")]
+        pub value: i32,
+        /// String id
+        #[prost(string, tag = "2")]
+        pub id: ::prost::alloc::string::String,
+        /// (String, String) elem_id
+        #[prost(message, optional, tag = "3")]
+        pub elem_id: ::core::option::Option<ElemId>,
+    }
+    #[allow(clippy::derive_partial_eq_without_eq)]
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct DeleteMessage {
+        /// (String, String) elem_id
+        #[prost(message, optional, tag = "1")]
+        pub elem_id: ::core::option::Option<ElemId>,
+    }
+    #[allow(clippy::derive_partial_eq_without_eq)]
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct ElemId {
+        /// First part of the tuple
+        #[prost(string, tag = "1")]
+        pub first: ::prost::alloc::string::String,
+        /// Second part of the tuple
+        #[prost(string, tag = "2")]
+        pub second: ::prost::alloc::string::String,
+    }
+    #[allow(clippy::derive_partial_eq_without_eq)]
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Operation {
+        /// Insert operation
+        #[prost(message, tag = "2")]
+        Insert(InsertMessage),
+        /// Delete operation
+        #[prost(message, tag = "3")]
+        Delete(DeleteMessage),
+    }
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RgaRequest {
+    /// History
+    #[prost(message, repeated, tag = "1")]
+    pub nodes: ::prost::alloc::vec::Vec<RgaNodeMessage>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RgaResponse {
+    /// Result of the operation
+    #[prost(string, tag = "1")]
+    pub result: ::prost::alloc::string::String,
+}
 /// Generated client implementations.
 pub mod bftcrdt_tester_service_client {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
@@ -170,6 +236,30 @@ pub mod bftcrdt_tester_service_client {
                 );
             self.inner.unary(req, path, codec).await
         }
+        pub async fn test_rga_once(
+            &mut self,
+            request: impl tonic::IntoRequest<super::RgaRequest>,
+        ) -> std::result::Result<tonic::Response<super::RgaResponse>, tonic::Status> {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/bftcrdtrpc.BFTCRDTTesterService/testRGAOnce",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new("bftcrdtrpc.BFTCRDTTesterService", "testRGAOnce"),
+                );
+            self.inner.unary(req, path, codec).await
+        }
     }
 }
 /// Generated server implementations.
@@ -183,6 +273,10 @@ pub mod bftcrdt_tester_service_server {
             &self,
             request: tonic::Request<super::OrSetRequest>,
         ) -> std::result::Result<tonic::Response<super::OrSetResponse>, tonic::Status>;
+        async fn test_rga_once(
+            &self,
+            request: tonic::Request<super::RgaRequest>,
+        ) -> std::result::Result<tonic::Response<super::RgaResponse>, tonic::Status>;
     }
     #[derive(Debug)]
     pub struct BftcrdtTesterServiceServer<T: BftcrdtTesterService> {
@@ -295,6 +389,52 @@ pub mod bftcrdt_tester_service_server {
                     let fut = async move {
                         let inner = inner.0;
                         let method = testORSetOnceSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/bftcrdtrpc.BFTCRDTTesterService/testRGAOnce" => {
+                    #[allow(non_camel_case_types)]
+                    struct testRGAOnceSvc<T: BftcrdtTesterService>(pub Arc<T>);
+                    impl<
+                        T: BftcrdtTesterService,
+                    > tonic::server::UnaryService<super::RgaRequest>
+                    for testRGAOnceSvc<T> {
+                        type Response = super::RgaResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::RgaRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                (*inner).test_rga_once(request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = testRGAOnceSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

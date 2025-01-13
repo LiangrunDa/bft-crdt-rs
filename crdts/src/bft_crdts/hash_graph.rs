@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::fmt::Debug;
+use std::fmt::{Debug, Display};
 use sha2::{Digest, Sha256};
 use hex;
 use tracing::trace;
@@ -11,6 +11,14 @@ pub type HashType = String;
 pub struct Node<T: Serialize + Clone> {
     pub predecessors: Vec<HashType>,
     pub value: T,
+}
+
+impl <T: Serialize + Clone + Display> Display for Node<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let hash = self.get_hash();
+        // Node { hash: 12345678, value: "value.display" }
+        write!(f, "Node {{ preds: {:?}, hash: {}, value: {} }}", self.predecessors, &hash[0..8], self.value)
+    }
 }
 
 impl <T: Serialize + Clone> Debug for Node<T> {

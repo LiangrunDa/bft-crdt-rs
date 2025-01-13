@@ -33,6 +33,39 @@ message ORSetResponse {
   }
 }
 
+message RGANodeMessage {
+  repeated string predecessors = 1;  // predecessor hashes
+
+  oneof operation {
+    InsertMessage insert = 2;  // Insert operation
+    DeleteMessage delete = 3;  // Delete operation
+  }
+
+  message InsertMessage {
+    int32 value = 1;  // Integer value
+    string id = 2;    // String id
+    ElemId elem_id = 3;  // (String, String) elem_id
+  }
+
+  message DeleteMessage {
+    ElemId elem_id = 1;       // (String, String) elem_id
+  }
+
+  message ElemId {
+    string first = 1;         // First part of the tuple
+    string second = 2;        // Second part of the tuple
+  }
+}
+
+message RGARequest {
+  repeated RGANodeMessage nodes = 1;  // History
+}
+
+message RGAResponse {
+  string result = 1;  // Result of the operation
+}
+
 service BFTCRDTTesterService {
   rpc testORSetOnce(ORSetRequest) returns (ORSetResponse) {}
+  rpc testRGAOnce(RGARequest) returns (RGAResponse) {}
 }

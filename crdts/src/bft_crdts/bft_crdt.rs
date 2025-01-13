@@ -1,5 +1,5 @@
 use std::cmp::min;
-use std::fmt::Debug;
+use std::fmt::{Debug, Display};
 use crate::bft_crdts::hash_graph::{HashGraph, HashType, Node};
 use tracing::{trace};
 use crate::serialize::Serialize;
@@ -8,6 +8,7 @@ use rand::{Rng, RngCore};
 use rand::prelude::SliceRandom;
 use rand::rngs::StdRng;
 use rand::SeedableRng;
+use rand_pcg::Pcg32;
 
 pub trait BFTCRDT<O: Serialize + Clone> {
     fn interpret_node(&mut self, node: &Node<O>);
@@ -19,7 +20,7 @@ pub struct BFTCRDTTester<O: Serialize + Clone, T: BFTCRDT<O>> {
     pub hash_graph: HashGraph<O>,
 }
 
-impl <O: Serialize + Clone + Debug, T: BFTCRDT<O>> BFTCRDTTester<O, T> {
+impl <O: Serialize + Clone + Debug + Display, T: BFTCRDT<O>> BFTCRDTTester<O, T> {
     pub fn new(crdt: T) -> Self {
         BFTCRDTTester {
             crdt,
@@ -30,8 +31,10 @@ impl <O: Serialize + Clone + Debug, T: BFTCRDT<O>> BFTCRDTTester<O, T> {
     #[tracing::instrument(level = "trace", skip(self))]
     pub fn handle_node(&mut self, remote_node: Node<O>) {
         trace!("Begin of handle_node");
+        trace!("Remote node: {}", remote_node);
         let struct_valid = self.hash_graph.is_structurally_valid(&remote_node);
         if !struct_valid {
+            trace!("Node is not structurally valid");
             return;
         }
         let sem_valid = self.crdt.is_sem_valid(&remote_node, &self.hash_graph);
@@ -40,6 +43,8 @@ impl <O: Serialize + Clone + Debug, T: BFTCRDT<O>> BFTCRDTTester<O, T> {
             trace!("Interpreting node");
             self.crdt.interpret_node(&remote_node);
             trace!("Node interpreted");
+        } else {
+            trace!("Node is not semantically valid");
         }
         trace!("End of handle_node");
     }
@@ -49,7 +54,7 @@ impl <O: Serialize + Clone + Debug, T: BFTCRDT<O>> BFTCRDTTester<O, T> {
 pub struct BFTCRDTGenerator<O: Serialize + Clone, T: BFTCRDT<O>> {
     pub crdt: T,
     pub hash_graph: HashGraph<O>,
-    rng: StdRng,
+    pub rng: Pcg32,
 }
 
 impl <O: Serialize + Clone, T: BFTCRDT<O>> BFTCRDTGenerator<O, T> {
@@ -58,7 +63,7 @@ impl <O: Serialize + Clone, T: BFTCRDT<O>> BFTCRDTGenerator<O, T> {
         BFTCRDTGenerator {
             crdt,
             hash_graph: HashGraph::new(),
-            rng: StdRng::seed_from_u64(seed),
+            rng: Pcg32::seed_from_u64(seed),
         }
     }
 

@@ -3,6 +3,9 @@ use tracing::info;
 mod cli;
 mod orset;
 mod logger;
+mod rga;
+
+use std::collections::LinkedList;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -17,6 +20,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "orset" => {
             let mut orset_experiment = orset::ORSetExperiment::new(args);
             orset_experiment.run().await
+        }
+        "rga" => {
+            let mut rga_experiment = rga::RGAExperiment::new(args);
+            rga_experiment.run().await
         }
         _ => {
             panic!("Experiment not supported");
