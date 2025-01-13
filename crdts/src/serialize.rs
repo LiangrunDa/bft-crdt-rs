@@ -83,3 +83,8 @@ impl<T: Serialize> Serialize for (T, T) {
     }
 }
 
+impl<T: Serialize> Serialize for &T {
+    fn to_bytes(&self) -> Vec<u8> {
+        (*self).to_bytes()
+    }
+}

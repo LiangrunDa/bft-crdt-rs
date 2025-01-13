@@ -8,7 +8,7 @@ where
     I: PartialEq + Eq + Hash + Clone + PartialOrd,
     V: PartialEq + Eq + Hash + Clone,
 {
-    elements: LinkedList<Element<I, V>>,
+    pub(crate) elements: LinkedList<Element<I, V>>,
 }
 
 impl<I, V> OrderedList<I, V> 

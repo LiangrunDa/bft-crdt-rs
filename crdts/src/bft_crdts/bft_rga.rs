@@ -203,4 +203,15 @@ where
             None
         }
     }
+    
+    // used only for benchmarking
+    pub fn raw_delete(&mut self, idx: usize) -> Option<BFTRGAOp<I, V>> {
+        let iter = self.elements.elements.iter().enumerate();
+        for (i, (id, _, _)) in iter {
+            if i == idx {
+                return Some(BFTRGAOp::Delete(id.clone()));
+            }
+        }
+        None
+    }
 }

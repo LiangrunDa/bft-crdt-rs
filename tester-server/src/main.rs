@@ -88,8 +88,6 @@ impl BftcrdtTesterService for BftCrdtTesterServer {
             };
 
             tester.handle_node(hash_node);
-            let temp_list = tester.crdt.get_list();
-            println!("temp_list: {:?}", temp_list);
         }
         
         let int_list = tester.crdt.get_list();

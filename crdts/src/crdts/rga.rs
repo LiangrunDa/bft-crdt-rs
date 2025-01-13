@@ -59,6 +59,16 @@ where
             None
         }
     }
+    
+    pub fn raw_delete(&mut self, idx: usize) -> Option<RGAOp<I, V>> {
+        let iter = self.elements.elements.iter().enumerate();
+        for (i, (id, _, _)) in iter {
+            if i == idx {
+                return Some(RGAOp::Delete(id.clone()));
+            }
+        }
+        None
+    }
 }
 
 impl<I, V> CRDT<RGAOp<I, V>> for RGA<I, V>
