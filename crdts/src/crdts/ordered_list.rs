@@ -1,5 +1,5 @@
 use std::hash::Hash;
-use std::collections::LinkedList;
+use crate::crdts::linked_list::LinkedList;
 
 type Element<I, V> = (I, V, bool);
 
@@ -24,13 +24,15 @@ where
 
     pub fn insert_by_id(&mut self, id: I, value: V, after: Option<I>) -> Option<()> {
         let to_insert = (id, value, false);
-        let mut cursor = self.elements.cursor_front_mut();
-        // cursor.move_next();
+        let mut cursor = self.elements.cursor_mut();
+        cursor.move_next();
         match after {
             None => {
                 while let Some(element) = cursor.current() {
                     if element.0 < to_insert.0 {
-                        cursor.insert_before(to_insert);
+                        let mut element_temp_list = LinkedList::new();
+                        element_temp_list.push_back(to_insert.clone());
+                        cursor.splice_before(element_temp_list);
                         return Some(());
                     }
                     cursor.move_next();
@@ -55,10 +57,9 @@ where
 
                 while let Some(element) = cursor.current() {
                     if element.0 < to_insert.0 {
-                        cursor.insert_before(to_insert);
-                        // let mut element_temp_list = LinkedList::new();
-                        // element_temp_list.push_front(to_insert.clone());
-                        // cursor.splice_before(element_temp_list);
+                        let mut element_temp_list = LinkedList::new();
+                        element_temp_list.push_front(to_insert.clone());
+                        cursor.splice_before(element_temp_list);
                         return Some(());
                     }
                     cursor.move_next();
