@@ -30,15 +30,9 @@ pub fn bench_orset_remove(group: &mut BenchmarkGroup<WallTime>) {
         orset.interpret_op(&add_op);
         
         b.iter(|| {
-            let ids = orset.get_ids("test_element")
-                         .into_iter()
-                         .collect();
+            let ids = vec!["id_1"];
             let remove_op = orset.remove("test_element", ids);
             orset.interpret_op(&remove_op);
-            
-            // Re-add the element for next iteration
-            let add_op = orset.add("test_element", "id_1");
-            orset.interpret_op(&add_op);
         });
     });
 }

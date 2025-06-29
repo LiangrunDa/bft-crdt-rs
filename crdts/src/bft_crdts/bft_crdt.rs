@@ -159,7 +159,7 @@ impl <O: Serialize + Clone, T: BFTCRDT<O>> BFTCRDTHandler<O, T> {
         }
     }
     
-    pub fn handle_local_op(&mut self, op: O) {
+    pub fn handle_local_op(&mut self, op: O) -> Node<O> {
         let h = self.hash_graph.add_value_with_head_preds(op.clone());
         if h.is_none() {
             // this should never happen
@@ -167,6 +167,7 @@ impl <O: Serialize + Clone, T: BFTCRDT<O>> BFTCRDTHandler<O, T> {
         }
         let node = self.hash_graph.get_node(&h.unwrap()).unwrap();
         self.crdt.interpret_node(&node);
+        node.clone()
     }
 
     pub fn handle_remote_node(&mut self, remote_node: Node<O>) {

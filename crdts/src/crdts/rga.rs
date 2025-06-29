@@ -2,6 +2,7 @@ use crate::crdts::crdt::CRDT;
 use crate::crdts::ordered_list::OrderedList;
 use std::hash::Hash;
 
+#[derive(Clone)]
 pub enum RGAOp<I, V>
 where
     I: PartialEq + Eq + Hash + Clone,

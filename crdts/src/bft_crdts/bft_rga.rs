@@ -117,6 +117,10 @@ where
                         if let Some(ref_node) = ref_node_res {
                             if let BFTRGAOp::Insert(_v2, i2, _ei2) = &ref_node.value {
                                 let ref_hash = ref_node.get_hash();
+                                // fast path
+                                if !hash_graph.nodes.contains_key(&ref_hash) {
+                                    return false;
+                                }
                                 if hash_graph.is_ancestor(&ref_hash, node) && &id == i2 {
                                     true
                                 } else {

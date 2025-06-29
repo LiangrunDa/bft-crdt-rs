@@ -1,6 +1,6 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::fmt::{Debug, Display};
-use sha2::{Digest, Sha256};
+use sha2::{Digest, Sha256, Sha512};
 use hex;
 use tracing::trace;
 use crate::serialize::Serialize;
@@ -56,6 +56,49 @@ impl<T: Serialize + Clone> HashGraph<T> {
         }
     }
     
+    pub fn _has_cycle(&self) -> bool {
+        // from node hash to in_degree
+        let mut in_degree_map = HashMap::new();
+        let nodes = self.nodes.clone();
+        for node in nodes.clone() {
+            for pred in node.1.predecessors {
+                in_degree_map.insert(pred.clone(), in_degree_map.get(&pred).unwrap_or(&0) + 1);
+            }
+        }
+        
+        let mut queue = VecDeque::new();
+        for node in nodes.clone() {
+            let in_degree = in_degree_map.get(&node.0);
+            match in_degree {
+                Some(d) => {
+                    if *d == 0 {
+                        queue.push_back(node.0);
+                    }
+                }
+                None => queue.push_back(node.0)
+            }
+            
+        }
+        for (hash, in_degree) in in_degree_map.clone() {
+            if in_degree == 0 {
+                queue.push_back(hash);
+            }
+        }
+        let mut count = 0;
+        while let Some(h) = queue.pop_front() {
+            count += 1;
+            let node = nodes.get(&h).unwrap();
+            for pred in node.predecessors.clone() {
+                in_degree_map.insert(pred.clone(), in_degree_map.get(&pred).unwrap() - 1);
+                if *in_degree_map.get(&pred).unwrap() == 0 {
+                    queue.push_back(pred);
+                };
+            }
+        }
+        count != nodes.len()
+    }
+    
+    
     pub fn is_structurally_valid(&self, node: &Node<T>) -> bool {
         trace!("Begin of is_structurally_valid");
         for pred in &node.predecessors {
@@ -97,20 +140,110 @@ impl<T: Serialize + Clone> HashGraph<T> {
     }
     
     pub fn is_ancestor(&self, ancestor: &HashType, descendant: &Node<T>) -> bool {
+        self.is_ancestor_bfs(ancestor, descendant)
+    }
+    
+    fn is_ancestor_recurse(&self, ancestor: &HashType, descendant: &Node<T>, visited: &mut HashSet<HashType>) -> bool {
+        let current_hash = descendant.get_hash();
+        
+        // if we have visited this node and returned, it means ancestor is not an ancestor of this node and we don't need to waste time on this node
+        if visited.contains(&current_hash) {
+            return false;
+        }
+        
+        visited.insert(current_hash);
+        
         if *ancestor == descendant.get_hash() {
             return true;
+        }
+        if descendant.predecessors.is_empty() {
+            // we have reached the first node
+            return false;
         }
         for pred in &descendant.predecessors {
             let pred_node = self.get_node(pred);
             match pred_node {
                 Some(node) => {
-                    if self.is_ancestor(ancestor, node) {
+                    // if 'ancestor' is an ancestor of any predecessor, return true
+                    if self.is_ancestor_recurse(ancestor, node, visited) {
                         return true;
                     }
                 }
                 None => return false,
             }
         }
+        // if 'ancestor' is not an ancestor of any predecessor (or this is a node without any predecessor, 
+        // i.e the first node), return false
+        false
+    }
+    
+    fn is_ancestor_dfs(&self, ancestor: &HashType, descendant: &Node<T>) -> bool {
+        let mut visited = HashSet::new();
+        let mut stack = Vec::new();
+        
+        stack.push(descendant);
+        
+        while let Some(current_node) = stack.pop() {
+            let current_hash = current_node.get_hash();
+            
+            if visited.contains(&current_hash) {
+                continue;
+            }
+            
+            visited.insert(current_hash.clone());
+            
+            if *ancestor == current_hash {
+                return true;
+            }
+            
+            if current_node.predecessors.is_empty() {
+                continue;
+            }
+            
+            for pred in &current_node.predecessors {
+                if let Some(pred_node) = self.get_node(pred) {
+                    stack.push(pred_node);
+                } else {
+                    return false;
+                }
+            }
+        }
+        
+        false
+    }
+
+    fn is_ancestor_bfs(&self, ancestor: &HashType, descendant: &Node<T>) -> bool {
+        let mut visited = HashSet::new();
+        let mut queue = VecDeque::new();
+        
+        queue.push_back(descendant);
+        
+        while let Some(current_node) = queue.pop_front() {
+            let current_hash = current_node.get_hash();
+            
+            if visited.contains(&current_hash) {
+                continue;
+            }
+            
+            visited.insert(current_hash.clone());
+            
+            if *ancestor == current_hash {
+                return true;
+            }
+            
+            if current_node.predecessors.is_empty() {
+                continue;
+            }
+            
+            for pred in &current_node.predecessors {
+                if let Some(pred_node) = self.get_node(pred) {
+                    queue.push_back(pred_node);
+                } else {
+                    return false;
+                }
+            }
+        }
+        
         false
     }
 }
