@@ -23,7 +23,7 @@ fn trim_outliers(times: &[Duration]) -> Vec<Duration> {
 
 pub fn orset_add1() {
     let num_runs = 100;
-    let num_ops = 5000;
+    let num_ops = 100;
     let mut out = get_output_file("orset_add1");
 
     writeln!(out, "Comparing ORSet and BFTOrSet Add operation performance...").unwrap();
@@ -88,7 +88,7 @@ pub fn orset_add1() {
 }
 
 pub fn orset_remove1() {
-    let num_ops = 5000;
+    let num_ops = 100;
     let num_runs = 100;
     let mut out = get_output_file("orset_remove1");
 

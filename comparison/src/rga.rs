@@ -24,7 +24,7 @@ fn trim_outliers(times: &[Duration]) -> Vec<Duration> {
 
 pub fn rga_insert1() {
     let num_runs = 100;
-    let num_ops = 5000;
+    let num_ops = 100;
     let mut out = get_output_file("rga_insert1");
 
     writeln!(out, "Comparing RGA and BFTRGA Insert operation performance...").unwrap();
@@ -90,7 +90,7 @@ pub fn rga_insert1() {
 }
 
 pub fn rga_delete1() {
-    let num_ops = 5000;
+    let num_ops = 100;
     let num_runs = 100;
     let mut out = get_output_file("rga_delete1");
 
@@ -113,7 +113,7 @@ pub fn rga_delete1() {
         }
         let start = Instant::now();
         for i in 0..num_ops {
-            let delete_op = rga.delete(0).unwrap();
+            let delete_op = rga.delete(num_ops - i - 1).unwrap();
             rga.interpret_op(&delete_op);
         }
         let elapsed = start.elapsed();
@@ -135,7 +135,7 @@ pub fn rga_delete1() {
         }
         let start = Instant::now();
         for i in 0..num_ops {
-            let delete_op = handler.crdt.delete(0).unwrap();
+            let delete_op = handler.crdt.delete(num_ops - i - 1).unwrap();
             handler.handle_local_op(delete_op);
         }
         let elapsed = start.elapsed();

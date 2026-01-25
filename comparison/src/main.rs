@@ -11,7 +11,7 @@ fn main() {
 
     if args.len() < 2 {
         eprintln!("Usage: {} <experiment>", args[0]);
-        eprintln!("Available experiments: orset_add1, orset_remove1, rga_insert1, rga_delete1, sequential_edit <dataset>, concurrent_edit <dataset>");
+        eprintln!("Available experiments: orset_add1, orset_remove1, rga_insert1, rga_delete1, sequential_edit_rga <dataset>, sequential_edit_bft_rga <dataset>, concurrent_edit <dataset>");
         std::process::exit(1);
     }
 
@@ -32,13 +32,21 @@ fn main() {
             println!("Running RGA Delete experiment...");
             rga::rga_delete1();
         }
-        "sequential_edit" => {
+        "sequential_edit_rga" => {
             if args.len() < 3 {
-                eprintln!("Usage: {} sequential_edit <dataset>", args[0]);
+                eprintln!("Usage: {} sequential_edit_rga <dataset>", args[0]);
                 eprintln!("Available datasets: friendsforever_flat, json-crdt-patch, sveltecomponent");
                 std::process::exit(1);
             }
-            sequential_edit::sequential_editing(args[2].as_str());
+            sequential_edit::sequential_editing_rga(args[2].as_str());
+        }
+        "sequential_edit_bft_rga" => {
+            if args.len() < 3 {
+                eprintln!("Usage: {} sequential_edit_bft_rga <dataset>", args[0]);
+                eprintln!("Available datasets: friendsforever_flat, json-crdt-patch, sveltecomponent");
+                std::process::exit(1);
+            }
+            sequential_edit::sequential_editing_bft_rga(args[2].as_str());
         }
         "concurrent_edit" => {
             if args.len() < 3 {
@@ -50,7 +58,7 @@ fn main() {
         }
         _ => {
             eprintln!("Unknown experiment: {}", args[1]);
-            eprintln!("Available experiments: orset_add1, orset_remove1, rga_insert1, rga_delete1, sequential_edit <dataset>, concurrent_edit <dataset>");
+            eprintln!("Available experiments: orset_add1, orset_remove1, rga_insert1, rga_delete1, sequential_edit_rga <dataset>, sequential_edit_bft_rga <dataset>, concurrent_edit <dataset>");
             std::process::exit(1);
         }
     }
