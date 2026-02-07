@@ -377,9 +377,9 @@ impl BFTPeer {
     }
 }
 
-// Helper function to create 2 peers and run them
-pub fn run_peers(dataset_name: &str) {
-    let mut out = get_output_file(format!("concurrent_editing-{dataset_name}").as_str());
+// Helper function to create 2 peers and run them with RGA
+pub fn run_peers_rga(dataset_name: &str) {
+    let mut out = get_output_file(format!("concurrent_editing_rga-{dataset_name}").as_str());
     
     // Create channels for the two peers
     let (tx1, rx2) = mpsc::channel::<Message>(); // Peer 1 sends to Peer 2
@@ -404,8 +404,14 @@ pub fn run_peers(dataset_name: &str) {
     let elapsed = start_time.elapsed();
     writeln!(out, "RGA concurrent time for {} is {:?}", dataset_name, elapsed).unwrap();
     println!("RGA concurrent execution time: {:?}", elapsed);
+}
+
+// Helper function to create 2 peers and run them with BFT-RGA
+pub fn run_peers_bft_rga(dataset_name: &str) {
+    let mut out = get_output_file(format!("concurrent_editing_bft_rga-{dataset_name}").as_str());
     
-    // Now run with BFT_RGA
+    let data = load_testing_data(format!("comparison/editing_trace/{}.json.gz", dataset_name).as_str());
+    
     // Create channels for the two BFT peers
     let (bft_tx1, bft_rx2) = mpsc::channel::<BFTMessage>(); // BFT Peer 1 sends to BFT Peer 2
     let (bft_tx2, bft_rx1) = mpsc::channel::<BFTMessage>(); // BFT Peer 2 sends to BFT Peer 1

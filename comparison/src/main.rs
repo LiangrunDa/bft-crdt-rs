@@ -11,7 +11,7 @@ fn main() {
 
     if args.len() < 2 {
         eprintln!("Usage: {} <experiment>", args[0]);
-        eprintln!("Available experiments: orset_add1, orset_remove1, rga_insert1, rga_delete1, sequential_edit_rga <dataset>, sequential_edit_bft_rga <dataset>, concurrent_edit <dataset>");
+        eprintln!("Available experiments: orset_add1, orset_remove1, rga_insert1, rga_delete1, sequential_edit_rga <dataset>, sequential_edit_bft_rga <dataset>, concurrent_edit_rga <dataset>, concurrent_edit_bft_rga <dataset>");
         std::process::exit(1);
     }
 
@@ -48,17 +48,25 @@ fn main() {
             }
             sequential_edit::sequential_editing_bft_rga(args[2].as_str());
         }
-        "concurrent_edit" => {
+        "concurrent_edit_rga" => {
             if args.len() < 3 {
-                eprintln!("Usage: {} concurrent_edit <dataset>", args[0]);
+                eprintln!("Usage: {} concurrent_edit_rga <dataset>", args[0]);
                 eprintln!("Available datasets: friendsforever");
                 std::process::exit(1);
             }
-            concurrent_edit::run_peers(args[2].as_str());
+            concurrent_edit::run_peers_rga(args[2].as_str());
+        }
+        "concurrent_edit_bft_rga" => {
+            if args.len() < 3 {
+                eprintln!("Usage: {} concurrent_edit_bft_rga <dataset>", args[0]);
+                eprintln!("Available datasets: friendsforever");
+                std::process::exit(1);
+            }
+            concurrent_edit::run_peers_bft_rga(args[2].as_str());
         }
         _ => {
             eprintln!("Unknown experiment: {}", args[1]);
-            eprintln!("Available experiments: orset_add1, orset_remove1, rga_insert1, rga_delete1, sequential_edit_rga <dataset>, sequential_edit_bft_rga <dataset>, concurrent_edit <dataset>");
+            eprintln!("Available experiments: orset_add1, orset_remove1, rga_insert1, rga_delete1, sequential_edit_rga <dataset>, sequential_edit_bft_rga <dataset>, concurrent_edit_rga <dataset>, concurrent_edit_bft_rga <dataset>");
             std::process::exit(1);
         }
     }
