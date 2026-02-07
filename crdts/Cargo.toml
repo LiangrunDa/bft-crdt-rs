@@ -9,6 +9,7 @@ hex = "0.4"
 tracing = "0.1.37"
 rand = "0.8.5"
 rand_pcg = "0.3.1"
+slab = "0.4.10"
 
 [dev-dependencies]
 criterion = "0.5.1"

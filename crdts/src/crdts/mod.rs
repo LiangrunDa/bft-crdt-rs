@@ -3,3 +3,4 @@ pub mod orset;
 pub mod rga;
 pub mod ordered_list;
 mod linked_list;
+pub(crate) mod hashed_ordered_list;

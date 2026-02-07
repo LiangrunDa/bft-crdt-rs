@@ -1,5 +1,5 @@
 use crate::crdts::crdt::CRDT;
-use crate::crdts::ordered_list::OrderedList;
+use crate::crdts::hashed_ordered_list::OrderedList;
 use std::hash::Hash;
 
 #[derive(Clone)]
@@ -60,16 +60,22 @@ where
             None
         }
     }
-    
+
     pub fn raw_delete(&mut self, idx: usize) -> Option<RGAOp<I, V>> {
-        let iter = self.elements.elements.iter().enumerate();
-        for (i, (id, _, _)) in iter {
+        let mut i = 0usize;
+        let mut cur = self.elements.head;
+
+        while let Some(h) = cur {
             if i == idx {
-                return Some(RGAOp::Delete(id.clone()));
+                let id = self.elements.nodes[h].elem.0.clone();
+                return Some(RGAOp::Delete(id));
             }
+            i += 1;
+            cur = self.elements.nodes[h].next;
         }
         None
     }
+
 }
 
 impl<I, V> CRDT<RGAOp<I, V>> for RGA<I, V>

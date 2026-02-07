@@ -2,7 +2,7 @@ use std::fmt::{Debug, Display};
 use std::hash::Hash;
 use crate::bft_crdts::hash_graph::{HashGraph, HashType, Node};
 use crate::bft_crdts::bft_crdt::BFTCRDT;
-use crate::crdts::ordered_list::OrderedList;
+use crate::crdts::hashed_ordered_list::OrderedList;
 use crate::serialize::Serialize;
 
 //  The ID of each element in RGA affects the position of the element in the list, since 
@@ -210,12 +210,18 @@ where
     
     // used only for benchmarking
     pub fn raw_delete(&mut self, idx: usize) -> Option<BFTRGAOp<I, V>> {
-        let iter = self.elements.elements.iter().enumerate();
-        for (i, (id, _, _)) in iter {
+        let mut i = 0usize;
+        let mut cur = self.elements.head;
+
+        while let Some(h) = cur {
             if i == idx {
-                return Some(BFTRGAOp::Delete(id.clone()));
+                let id = self.elements.nodes[h].elem.0.clone();
+                return Some(BFTRGAOp::Delete(id));
             }
+            i += 1;
+            cur = self.elements.nodes[h].next;
         }
         None
     }
+
 }

@@ -1,7 +1,7 @@
 use std::hash::Hash;
 use crate::crdts::linked_list::LinkedList;
 
-type Element<I, V> = (I, V, bool);
+type Element<I, V> = (I, V, bool); // (id, value, is_deleted)
 
 pub struct OrderedList<I, V> 
 where
