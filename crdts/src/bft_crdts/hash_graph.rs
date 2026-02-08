@@ -4,7 +4,7 @@ use std::cell::RefCell;
 use sha2::{Digest, Sha256};
 use hex;
 use tracing::trace;
-use ahash::AHashSet;
+use ahash::{AHashSet, AHashMap};
 use crate::serialize::Serialize;
 
 // Use fixed-size array for zero-allocation hash storage
@@ -67,14 +67,14 @@ impl <T: Serialize + Clone> Node<T> {
 }
 
 pub struct HashGraph<T: Serialize + Clone> {
-    pub nodes: HashMap<HashType, Node<T>>,
+    pub nodes: AHashMap<HashType, Node<T>>,
     heads: Vec<HashType>,
 }
 
 impl<T: Serialize + Clone> HashGraph<T> {
     pub fn new() -> Self {
         HashGraph {
-            nodes: HashMap::new(),
+            nodes: AHashMap::new(),
             heads: vec![],
         }
     }
@@ -237,20 +237,24 @@ impl<T: Serialize + Clone> HashGraph<T> {
     }
 
     fn is_ancestor_bfs(&self, ancestor: &HashType, descendant: &Node<T>) -> bool {
-        let mut visited = AHashSet::new();
-        let mut queue = VecDeque::new();
+        // Track visited by node address to avoid hashing 32-byte hashes.
+        let mut visited: AHashSet<*const Node<T>> =
+            AHashSet::with_capacity(self.nodes.len().min(1024));
+        let mut queue = VecDeque::with_capacity(self.nodes.len().min(1024));
         
         queue.push_back(descendant);
         
         while let Some(current_node) = queue.pop_front() {
             let current_hash = current_node.get_hash();
             
-            if !visited.insert(current_hash) {
-                continue;
-            }
-            
             if *ancestor == current_hash {
                 return true;
+            }
+            
+            /* Use node address to track visited to avoid hashing 32-byte hashes. */
+            let current_ptr = current_node as *const Node<T>;
+            if !visited.insert(current_ptr) {
+                continue;
             }
             
             if current_node.predecessors.is_empty() {
