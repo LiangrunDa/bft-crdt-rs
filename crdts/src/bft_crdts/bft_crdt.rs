@@ -1,5 +1,6 @@
 use std::cmp::min;
 use std::fmt::{Debug, Display};
+use std::cell::RefCell;
 use crate::bft_crdts::hash_graph::{HashGraph, HashType, Node};
 use tracing::{trace};
 use crate::serialize::Serialize;
@@ -78,6 +79,7 @@ impl <O: Serialize + Clone, T: BFTCRDT<O>> BFTCRDTGenerator<O, T> {
         let node = Node {
             predecessors: preds,
             value: op,
+            cached_hash: RefCell::new(None),
         };
         if !self.hash_graph.is_structurally_valid(&node) {
             // this should never happen
@@ -124,6 +126,7 @@ impl <O: Serialize + Clone, T: BFTCRDT<O>> BFTCRDTGenerator<O, T> {
         let node = Node {
             predecessors: preds,
             value: op,
+            cached_hash: RefCell::new(None),
         };
         
         let struct_valid = self.hash_graph.is_structurally_valid(&node);

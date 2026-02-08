@@ -1,5 +1,6 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::fmt::{Debug, Display};
+use std::cell::RefCell;
 use sha2::{Digest, Sha256, Sha512};
 use hex;
 use tracing::trace;
@@ -11,6 +12,7 @@ pub type HashType = String;
 pub struct Node<T: Serialize + Clone> {
     pub predecessors: Vec<HashType>,
     pub value: T,
+    pub cached_hash: RefCell<Option<HashType>>,
 }
 
 impl <T: Serialize + Clone + Display> Display for Node<T> {
@@ -30,6 +32,12 @@ impl <T: Serialize + Clone> Debug for Node<T> {
 
 impl <T: Serialize + Clone> Node<T> {
     pub fn get_hash(&self) -> HashType {
+        // Check if hash is already cached
+        if let Some(cached) = self.cached_hash.borrow().as_ref() {
+            return cached.clone();
+        }
+        
+        // Compute hash
         let mut hasher = Sha256::new();
         let mut sorted_preds = self.predecessors.clone();
         sorted_preds.sort();
@@ -39,7 +47,12 @@ impl <T: Serialize + Clone> Node<T> {
         let value_bytes = self.value.clone().to_bytes();
         hasher.update(value_bytes);
         let hash = hasher.finalize().to_vec();
-        hex::encode(hash)
+        let hash_str = hex::encode(hash);
+        
+        // Cache the computed hash
+        *self.cached_hash.borrow_mut() = Some(hash_str.clone());
+        
+        hash_str
     }
 }
 
@@ -127,6 +140,7 @@ impl<T: Serialize + Clone> HashGraph<T> {
         let node = Node {
             predecessors: self.heads.clone(),
             value,
+            cached_hash: RefCell::new(None),
         };
         
         let hash = node.get_hash();

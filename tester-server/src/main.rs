@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::cell::RefCell;
 use protocol::bftcrdtrpc::bftcrdt_tester_service_server::{BftcrdtTesterService, BftcrdtTesterServiceServer};
 use protocol::bftcrdtrpc::{or_set_response, OrSetRequest, OrSetResponse, RgaRequest, RgaResponse};
 use tonic::{transport::Server, Request, Response, Status};
@@ -40,6 +41,7 @@ impl BftcrdtTesterService for BftCrdtTesterServer {
             let hash_node = Node {
                 predecessors: node.predecessors,
                 value: op,
+                cached_hash: RefCell::new(None),
             };
             
             tester.handle_node(hash_node);
@@ -85,6 +87,7 @@ impl BftcrdtTesterService for BftCrdtTesterServer {
             let hash_node = Node {
                 predecessors: node.predecessors,
                 value: op,
+                cached_hash: RefCell::new(None),
             };
 
             tester.handle_node(hash_node);
