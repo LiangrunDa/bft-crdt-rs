@@ -4,7 +4,7 @@ package bftcrdtrpc;
 option go_package = "github.com/LiangrunDa/bft-crdt-tester/network";
 
 message ORSetNodeMessage {
-  repeated string predecessors = 1;  // predecessor hashes
+  repeated bytes predecessors = 1;  // predecessor hashes
 
   oneof operation {
     AddMessage add = 2;  // Add operation
@@ -16,7 +16,7 @@ message ORSetNodeMessage {
   }
 
   message RemMessage {
-    repeated string ids = 1;  // IDs to remove
+    repeated bytes ids = 1;  // IDs to remove
     int32 elem = 2;            // elem to remove
   }
 }
@@ -34,7 +34,7 @@ message ORSetResponse {
 }
 
 message RGANodeMessage {
-  repeated string predecessors = 1;  // predecessor hashes
+  repeated bytes predecessors = 1;  // predecessor hashes
 
   oneof operation {
     InsertMessage insert = 2;  // Insert operation
@@ -44,16 +44,16 @@ message RGANodeMessage {
   message InsertMessage {
     int32 value = 1;  // Integer value
     string id = 2;    // String id
-    ElemId elem_id = 3;  // (String, String) elem_id
+    ElemId elem_id = 3;  // (String, bytes) elem_id
   }
 
   message DeleteMessage {
-    ElemId elem_id = 1;       // (String, String) elem_id
+    ElemId elem_id = 1;       // (String, bytes) elem_id
   }
 
   message ElemId {
-    string first = 1;         // First part of the tuple
-    string second = 2;        // Second part of the tuple
+    string first = 1;         // First part of the tuple (String)
+    bytes second = 2;         // Second part of the tuple (Hash)
   }
 }
 

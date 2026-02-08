@@ -1,12 +1,13 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::fmt::{Debug, Display};
 use std::cell::RefCell;
-use sha2::{Digest, Sha256, Sha512};
+use sha2::{Digest, Sha256};
 use hex;
 use tracing::trace;
 use crate::serialize::Serialize;
 
-pub type HashType = String;
+// Use fixed-size array for zero-allocation hash storage
+pub type HashType = [u8; 32];
 
 #[derive(Clone)]
 pub struct Node<T: Serialize + Clone> {
@@ -18,15 +19,17 @@ pub struct Node<T: Serialize + Clone> {
 impl <T: Serialize + Clone + Display> Display for Node<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let hash = self.get_hash();
-        // Node { hash: 12345678, value: "value.display" }
-        write!(f, "Node {{ preds: {:?}, hash: {}, value: {} }}", self.predecessors, &hash[0..8], self.value)
+        // Convert first 4 bytes to hex for display
+        let hash_str = hex::encode(&hash[0..4]);
+        write!(f, "Node {{ preds: [..], hash: {}, value: {} }}", hash_str, self.value)
     }
 }
 
 impl <T: Serialize + Clone> Debug for Node<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let hash = self.get_hash();
-        write!(f, "{:?}", &hash[0..8])
+        // Display first 4 bytes in hex
+        write!(f, "{}", hex::encode(&hash[0..4]))
     }
 }
 
@@ -34,25 +37,31 @@ impl <T: Serialize + Clone> Node<T> {
     pub fn get_hash(&self) -> HashType {
         // Check if hash is already cached
         if let Some(cached) = self.cached_hash.borrow().as_ref() {
-            return cached.clone();
+            return *cached;  // Copy is cheap for [u8; 32]
         }
         
-        // Compute hash
+        // Compute hash using SHA-256
         let mut hasher = Sha256::new();
-        let mut sorted_preds = self.predecessors.clone();
-        sorted_preds.sort();
-        for pred in sorted_preds {
-            hasher.update(pred.as_bytes());
+        
+        // Sort by reference to avoid cloning the entire vector
+        let mut pred_refs: Vec<&HashType> = self.predecessors.iter().collect();
+        pred_refs.sort_unstable();
+        
+        for pred in pred_refs {
+            hasher.update(pred);
         }
-        let value_bytes = self.value.clone().to_bytes();
-        hasher.update(value_bytes);
-        let hash = hasher.finalize().to_vec();
-        let hash_str = hex::encode(hash);
+        
+        // Use hash_into for zero-allocation hashing!
+        self.value.hash_into(&mut hasher);
+        
+        // Get hash as fixed-size array - zero allocations!
+        let hash_result = hasher.finalize();
+        let hash: HashType = hash_result.into();
         
         // Cache the computed hash
-        *self.cached_hash.borrow_mut() = Some(hash_str.clone());
+        *self.cached_hash.borrow_mut() = Some(hash);
         
-        hash_str
+        hash
     }
 }
 
@@ -75,7 +84,7 @@ impl<T: Serialize + Clone> HashGraph<T> {
         let nodes = self.nodes.clone();
         for node in nodes.clone() {
             for pred in node.1.predecessors {
-                in_degree_map.insert(pred.clone(), in_degree_map.get(&pred).unwrap_or(&0) + 1);
+                in_degree_map.insert(pred, in_degree_map.get(&pred).unwrap_or(&0) + 1);
             }
         }
         
@@ -102,7 +111,7 @@ impl<T: Serialize + Clone> HashGraph<T> {
             count += 1;
             let node = nodes.get(&h).unwrap();
             for pred in node.predecessors.clone() {
-                in_degree_map.insert(pred.clone(), in_degree_map.get(&pred).unwrap() - 1);
+                in_degree_map.insert(pred, in_degree_map.get(&pred).unwrap() - 1);
                 if *in_degree_map.get(&pred).unwrap() == 0 {
                     queue.push_back(pred);
                 };
@@ -130,7 +139,7 @@ impl<T: Serialize + Clone> HashGraph<T> {
         self.heads.retain(|head| !node.predecessors.contains(head));
         
         // Add new node to heads
-        self.heads.push(hash.clone());
+        self.heads.push(hash);
         
         // Add node to graph
         self.nodes.insert(hash, node);
@@ -144,8 +153,8 @@ impl<T: Serialize + Clone> HashGraph<T> {
         };
         
         let hash = node.get_hash();
-        self.nodes.insert(hash.clone(), node);
-        self.heads = vec![hash.clone()];
+        self.nodes.insert(hash, node);
+        self.heads = vec![hash];
         Some(hash)
     }
 
@@ -204,7 +213,7 @@ impl<T: Serialize + Clone> HashGraph<T> {
                 continue;
             }
             
-            visited.insert(current_hash.clone());
+            visited.insert(current_hash);
             
             if *ancestor == current_hash {
                 return true;
@@ -239,7 +248,7 @@ impl<T: Serialize + Clone> HashGraph<T> {
                 continue;
             }
             
-            visited.insert(current_hash.clone());
+            visited.insert(current_hash);
             
             if *ancestor == current_hash {
                 return true;
@@ -272,7 +281,7 @@ mod tests {
         let hash = graph.add_value_with_head_preds(b"test".to_vec());
         let mut hasher = Sha256::new();
         hasher.update(b"test");
-        let expected_hash = hex::encode(hasher.finalize().to_vec());
+        let expected_hash: HashType = hasher.finalize().into();
         assert_eq!(hash.unwrap(), expected_hash);
         assert_eq!(graph.nodes.len(), 1);
         assert_eq!(graph.get_node(&expected_hash).unwrap().value, b"test");
@@ -285,11 +294,11 @@ mod tests {
         let hash2 = graph.add_value_with_head_preds(b"test2".to_vec());
         let mut hasher = Sha256::new();
         hasher.update(b"test1");
-        let expected_hash1 = hex::encode(hasher.finalize().to_vec());
+        let expected_hash1: HashType = hasher.finalize().into();
         hasher = Sha256::new();
-        hasher.update(expected_hash1.clone());
+        hasher.update(&expected_hash1);
         hasher.update(b"test2");
-        let expected_hash2 = hex::encode(hasher.finalize().to_vec());
+        let expected_hash2: HashType = hasher.finalize().into();
         
         assert_eq!(hash1.unwrap(), expected_hash1);
         assert_eq!(hash2.unwrap(), expected_hash2);

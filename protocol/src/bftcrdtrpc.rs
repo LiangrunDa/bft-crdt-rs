@@ -2,8 +2,8 @@
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct OrSetNodeMessage {
     /// predecessor hashes
-    #[prost(string, repeated, tag = "1")]
-    pub predecessors: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(bytes = "vec", repeated, tag = "1")]
+    pub predecessors: ::prost::alloc::vec::Vec<::prost::alloc::vec::Vec<u8>>,
     #[prost(oneof = "or_set_node_message::Operation", tags = "2, 3")]
     pub operation: ::core::option::Option<or_set_node_message::Operation>,
 }
@@ -20,8 +20,8 @@ pub mod or_set_node_message {
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct RemMessage {
         /// IDs to remove
-        #[prost(string, repeated, tag = "1")]
-        pub ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+        #[prost(bytes = "vec", repeated, tag = "1")]
+        pub ids: ::prost::alloc::vec::Vec<::prost::alloc::vec::Vec<u8>>,
         /// elem to remove
         #[prost(int32, tag = "2")]
         pub elem: i32,
@@ -65,8 +65,8 @@ pub mod or_set_response {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RgaNodeMessage {
     /// predecessor hashes
-    #[prost(string, repeated, tag = "1")]
-    pub predecessors: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(bytes = "vec", repeated, tag = "1")]
+    pub predecessors: ::prost::alloc::vec::Vec<::prost::alloc::vec::Vec<u8>>,
     #[prost(oneof = "rga_node_message::Operation", tags = "2, 3")]
     pub operation: ::core::option::Option<rga_node_message::Operation>,
 }
@@ -81,26 +81,26 @@ pub mod rga_node_message {
         /// String id
         #[prost(string, tag = "2")]
         pub id: ::prost::alloc::string::String,
-        /// (String, String) elem_id
+        /// (String, bytes) elem_id
         #[prost(message, optional, tag = "3")]
         pub elem_id: ::core::option::Option<ElemId>,
     }
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct DeleteMessage {
-        /// (String, String) elem_id
+        /// (String, bytes) elem_id
         #[prost(message, optional, tag = "1")]
         pub elem_id: ::core::option::Option<ElemId>,
     }
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct ElemId {
-        /// First part of the tuple
+        /// First part of the tuple (String)
         #[prost(string, tag = "1")]
         pub first: ::prost::alloc::string::String,
-        /// Second part of the tuple
-        #[prost(string, tag = "2")]
-        pub second: ::prost::alloc::string::String,
+        /// Second part of the tuple (Hash)
+        #[prost(bytes = "vec", tag = "2")]
+        pub second: ::prost::alloc::vec::Vec<u8>,
     }
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Oneof)]

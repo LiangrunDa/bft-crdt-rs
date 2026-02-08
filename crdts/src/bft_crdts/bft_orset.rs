@@ -6,6 +6,7 @@ use crate::bft_crdts::hash_graph::{HashGraph, Node};
 use tracing::{trace};
 use crate::bft_crdts::hash_graph::HashType;
 use crate::serialize::Serialize;
+use sha2::Digest;
 
 type ORSetID = HashType; // in BFT ORSet, ID is the hash value of the element's Add operation
 
@@ -47,10 +48,26 @@ where
                 let mut sorted_ids = ids.clone();
                 sorted_ids.sort();
                 for id in sorted_ids.iter() {
-                    bytes.extend_from_slice(id.as_bytes());
+                    bytes.extend_from_slice(id);  // id is already [u8; 32]
                 }
                 bytes.extend_from_slice(&e.to_bytes());
                 bytes
+            }
+        }
+    }
+    
+    fn hash_into(&self, hasher: &mut sha2::Sha256) {
+        match self {
+            BFTORSetOp::Add(e) => {
+                e.hash_into(hasher);
+            }
+            BFTORSetOp::Remove(e, ids) => {
+                let mut sorted_ids = ids.clone();
+                sorted_ids.sort();
+                for id in sorted_ids.iter() {
+                    hasher.update(id);
+                }
+                e.hash_into(hasher);
             }
         }
     }

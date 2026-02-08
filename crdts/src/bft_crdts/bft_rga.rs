@@ -4,6 +4,7 @@ use crate::bft_crdts::hash_graph::{HashGraph, HashType, Node};
 use crate::bft_crdts::bft_crdt::BFTCRDT;
 use crate::crdts::hashed_ordered_list::OrderedList;
 use crate::serialize::Serialize;
+use sha2::Digest;
 
 //  The ID of each element in RGA affects the position of the element in the list, since 
 //   $\isa{insert-body}$ skips over the elements that have greater IDs than the inserted element. 
@@ -56,7 +57,7 @@ where
                 match rga_id {
                     Some((id, hash)) => {
                         bytes.extend_from_slice(&id.to_bytes());
-                        bytes.extend_from_slice(hash.as_bytes());
+                        bytes.extend_from_slice(hash);  // hash is already [u8; 32]
                     }
                     None => {}
                 }
@@ -65,8 +66,28 @@ where
             BFTRGAOp::Delete(rga_id) => {
                 let mut bytes = vec![];
                 bytes.extend_from_slice(&rga_id.0.to_bytes());
-                bytes.extend_from_slice(&rga_id.1.as_bytes());
+                bytes.extend_from_slice(&rga_id.1);  // hash is already [u8; 32]
                 bytes
+            }
+        }
+    }
+    
+    fn hash_into(&self, hasher: &mut sha2::Sha256) {
+        match self {
+            BFTRGAOp::Insert(v, i, rga_id) => {
+                v.hash_into(hasher);
+                i.hash_into(hasher);
+                match rga_id {
+                    Some((id, hash)) => {
+                        id.hash_into(hasher);
+                        hasher.update(hash);
+                    }
+                    None => {}
+                }
+            }
+            BFTRGAOp::Delete(rga_id) => {
+                rga_id.0.hash_into(hasher);
+                hasher.update(&rga_id.1);
             }
         }
     }
@@ -90,7 +111,7 @@ where
         match op {
             BFTRGAOp::Insert(value, id, after) => {
                 let h = node.get_hash();
-                self.elements.insert_by_id((id.clone(), h.clone()), value.clone(), after.clone());
+                self.elements.insert_by_id((id.clone(), h), value.clone(), after.clone());
             }
             BFTRGAOp::Delete(eid) => {
                 self.elements.delete_by_id(eid.clone());
@@ -143,7 +164,7 @@ where
                 //     C e (hs, Delete ei) ∧
                 // H e = snd ei ∧
                 // (ref_id (snd e)) = Some (fst ei)
-                let hash = ei.1.clone();
+                let hash = ei.1;
                 let e = hash_graph.get_node(&hash);
                 if let Some(n) = e {
                     if let BFTRGAOp::Insert(v2, i2, ei2) = &n.value {

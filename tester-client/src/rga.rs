@@ -151,18 +151,18 @@ impl RGAExperiment {
     }
     
     fn convert_rga_node_to_rga_node_message(&self, node: Node<BFTRGAOp<String, i32>>) -> protocol::bftcrdtrpc::RgaNodeMessage {
-        let predecessors = node.predecessors.clone();
+        let predecessors: Vec<Vec<u8>> = node.predecessors.iter().map(|h| h.to_vec()).collect();
         let operation = match node.value {
             BFTRGAOp::Insert(value, id, after) => {
                 Operation::Insert(InsertMessage {
                     value,
                     id,
-                    elem_id: after.map(|(first, second)| ElemId { first, second }),
+                    elem_id: after.map(|(first, second)| ElemId { first, second: second.to_vec() }),
                 })
             }
             BFTRGAOp::Delete((first, second)) => {
                 Operation::Delete(DeleteMessage {
-                    elem_id: Some(ElemId { first, second }),
+                    elem_id: Some(ElemId { first, second: second.to_vec() }),
                 })
             }
         };

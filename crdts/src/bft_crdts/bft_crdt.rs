@@ -119,7 +119,6 @@ impl <O: Serialize + Clone, T: BFTCRDT<O>> BFTCRDTGenerator<O, T> {
         for _ in 0..num_preds {
             let mut hash = [0u8; 32];
             self.rng.fill(&mut hash);
-            let hash = hex::encode(hash);
             preds.push(hash);
         }
 

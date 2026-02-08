@@ -137,7 +137,7 @@ impl ORSetExperiment {
     }
     
     fn convert_orset_node_to_orset_node_message(&self, node: Node<BFTORSetOp<i32>>) -> protocol::bftcrdtrpc::OrSetNodeMessage {
-        let predecessors = node.predecessors.clone();
+        let predecessors: Vec<Vec<u8>> = node.predecessors.iter().map(|h| h.to_vec()).collect();
         let operation = match node.value {
             BFTORSetOp::Add(e) => {
                 Operation::Add(AddMessage {
@@ -146,9 +146,10 @@ impl ORSetExperiment {
             }
             
             BFTORSetOp::Remove(e, ids) => {
+                let ids_vec: Vec<Vec<u8>> = ids.iter().map(|id| id.to_vec()).collect();
                 Operation::Rem(RemMessage {
                     elem: e,
-                    ids,
+                    ids: ids_vec,
                 })
                 
             }
