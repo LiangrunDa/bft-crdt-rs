@@ -1,9 +1,10 @@
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{HashMap, VecDeque};
 use std::fmt::{Debug, Display};
 use std::cell::RefCell;
 use sha2::{Digest, Sha256};
 use hex;
 use tracing::trace;
+use ahash::AHashSet;
 use crate::serialize::Serialize;
 
 // Use fixed-size array for zero-allocation hash storage
@@ -166,7 +167,7 @@ impl<T: Serialize + Clone> HashGraph<T> {
         self.is_ancestor_bfs(ancestor, descendant)
     }
     
-    fn is_ancestor_recurse(&self, ancestor: &HashType, descendant: &Node<T>, visited: &mut HashSet<HashType>) -> bool {
+    fn is_ancestor_recurse(&self, ancestor: &HashType, descendant: &Node<T>, visited: &mut AHashSet<HashType>) -> bool {
         let current_hash = descendant.get_hash();
         
         // if we have visited this node and returned, it means ancestor is not an ancestor of this node and we don't need to waste time on this node
@@ -201,7 +202,7 @@ impl<T: Serialize + Clone> HashGraph<T> {
     }
     
     fn is_ancestor_dfs(&self, ancestor: &HashType, descendant: &Node<T>) -> bool {
-        let mut visited = HashSet::new();
+        let mut visited = AHashSet::new();
         let mut stack = Vec::new();
         
         stack.push(descendant);
@@ -236,7 +237,7 @@ impl<T: Serialize + Clone> HashGraph<T> {
     }
 
     fn is_ancestor_bfs(&self, ancestor: &HashType, descendant: &Node<T>) -> bool {
-        let mut visited = HashSet::new();
+        let mut visited = AHashSet::new();
         let mut queue = VecDeque::new();
         
         queue.push_back(descendant);
@@ -244,11 +245,9 @@ impl<T: Serialize + Clone> HashGraph<T> {
         while let Some(current_node) = queue.pop_front() {
             let current_hash = current_node.get_hash();
             
-            if visited.contains(&current_hash) {
+            if !visited.insert(current_hash) {
                 continue;
             }
-            
-            visited.insert(current_hash);
             
             if *ancestor == current_hash {
                 return true;

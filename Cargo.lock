@@ -395,6 +395,7 @@ dependencies = [
 name = "crdts"
 version = "0.1.0"
 dependencies = [
+ "ahash",
  "criterion",
  "hex",
  "rand 0.8.5",
